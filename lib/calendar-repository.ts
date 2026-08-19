@@ -38,7 +38,7 @@ export type CalendarParticipant = {
   displayName: string;
   shortName: string;
   initial: string;
-  tone: "purple" | "cyan" | "lime";
+  tone: "purple" | "cyan" | "lime" | "coral" | "amber" | "blue";
 };
 
 export type CalendarTrip = {
@@ -76,7 +76,7 @@ export interface CalendarRepository {
 
 const participants: CalendarParticipant[] = [
   { id: "nikita", displayName: "Никита", shortName: "Я", initial: "Н", tone: "purple" },
-  { id: "anna", displayName: "Анна", shortName: "Аня", initial: "А", tone: "purple" },
+  { id: "anna", displayName: "Анна", shortName: "Аня", initial: "А", tone: "coral" },
   { id: "maria", displayName: "Мария", shortName: "Маша", initial: "М", tone: "cyan" },
   { id: "ilya", displayName: "Илья", shortName: "Илья", initial: "И", tone: "lime" }
 ];

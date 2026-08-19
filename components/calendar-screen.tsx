@@ -15,6 +15,7 @@ import {
 import type {
   CalendarGap,
   CalendarItem,
+  CalendarParticipant,
   CalendarPreset
 } from "@/lib/calendar-repository";
 import { readManualCalendarItems } from "@/lib/manual-calendar-storage";
@@ -67,29 +68,30 @@ function positionEntry(
   return { kind, entry, column, top, height } as PositionedEntry;
 }
 
-function entryClasses(entry: CalendarItem) {
-  if (entry.status === "conflicted") {
-    return "border-[1.5px] border-coral bg-[#fff0ee] text-[#9b302b]";
-  }
-  if (entry.type === "booking") {
-    return "border-x-0 border-b-0 border-t-4 border-accent bg-ink text-white";
-  }
-  if (entry.type === "draft") {
-    return "border border-dashed border-primary/70 bg-primary/10 text-primary-strong";
-  }
+function participantEntryClasses(tone: CalendarParticipant["tone"]) {
+  if (tone === "cyan") return "border border-cyan bg-cyan/[0.24] text-ink";
+  if (tone === "lime") return "border border-[#8acb2e] bg-lime/[0.24] text-[#36520f]";
+  if (tone === "coral") return "border border-coral bg-coral/[0.16] text-[#8f302b]";
+  if (tone === "amber") return "border border-[#dc9b22] bg-[#f4b942]/[0.18] text-[#6d4500]";
+  if (tone === "blue") return "border border-[#4e8cff] bg-[#4e8cff]/[0.16] text-[#174d9b]";
+  return "border border-primary bg-primary/[0.16] text-primary-strong";
+}
+
+function entryClasses(entry: CalendarItem, participants: CalendarParticipant[]) {
   if (entry.type === "poll") {
-    if (entry.status === "confirmed") {
-      return "border-[1.5px] border-success bg-success/10 text-success";
-    }
-    return "border-[1.5px] border-dashed border-[#e4a928] bg-[#fff9cf] text-[#6b4500]";
+    return "border border-transparent bg-[linear-gradient(rgb(225_247_255/.94),rgb(225_247_255/.94)),linear-gradient(125deg,#45caff,#ffffff,#6f5df6,#45caff)] [background-clip:padding-box,border-box] [background-origin:border-box] text-[#164b78] shadow-[0_0_10px_rgb(69_202_255/.28)]";
   }
-  if (entry.status === "confirmed" && (entry.type === "event" || entry.type === "transfer")) {
-    return "border border-transparent bg-primary text-white";
-  }
-  if (entry.type === "transfer") {
-    return "border border-cyan bg-cyan/30 text-ink";
-  }
-  return "border border-cyan bg-cyan/30 text-ink";
+  const personalParticipant = entry.participantIds.length === 1
+    ? participants.find(({ id }) => id === entry.participantIds[0])
+    : undefined;
+  const ownership = personalParticipant
+    ? participantEntryClasses(personalParticipant.tone)
+    : "border border-transparent bg-[linear-gradient(rgb(255_255_255/.88),rgb(255_255_255/.88)),linear-gradient(125deg,#6f5df6,#6dd8df,#d1ff1a,#ff776d,#6f5df6)] [background-clip:padding-box,border-box] [background-origin:border-box] text-ink shadow-[0_0_9px_rgb(111_93_246/.16)]";
+  return cn(
+    ownership,
+    entry.status === "draft" && "border-dashed opacity-75",
+    entry.status === "conflicted" && "ring-2 ring-coral ring-offset-1"
+  );
 }
 
 function getEntryAriaLabel(entry: CalendarItem, timezone: string) {
@@ -186,7 +188,15 @@ export function CalendarScreen({
         <Link
           href="/trips"
           aria-label={`Профиль ${currentParticipant?.displayName ?? "участника"}`}
-          className="grid h-[38px] w-[38px] shrink-0 place-items-center rounded-full bg-primary text-[13px] font-semibold text-white"
+          className={cn(
+            "grid h-[38px] w-[38px] shrink-0 place-items-center rounded-full text-[13px] font-semibold",
+            currentParticipant?.tone === "cyan" && "bg-cyan text-ink",
+            currentParticipant?.tone === "lime" && "bg-lime text-ink",
+            currentParticipant?.tone === "coral" && "bg-coral text-white",
+            currentParticipant?.tone === "amber" && "bg-[#f4b942] text-ink",
+            currentParticipant?.tone === "blue" && "bg-[#4e8cff] text-white",
+            (!currentParticipant || currentParticipant.tone === "purple") && "bg-primary text-white"
+          )}
         >
           {currentParticipant?.initial ?? "?"}
         </Link>
@@ -281,7 +291,7 @@ export function CalendarScreen({
                   key={`gap-${entry.id}`}
                   href={entry.href}
                   style={style}
-                  className="absolute z-[2] overflow-hidden rounded-[7px_7px_7px_3px] border border-primary/60 bg-primary/10 p-[5px_4px] text-left text-[11px] font-semibold leading-[1.17] text-primary-strong shadow-[inset_3px_0_0_var(--color-primary)]"
+                  className="absolute z-[2] overflow-hidden rounded-[7px_7px_7px_3px] border-2 border-dashed border-[#e59a28] bg-[#fff7e7]/90 p-[5px_4px] text-left text-[11px] font-semibold leading-[1.17] text-[#82500d] shadow-[inset_3px_0_0_#e59a28]"
                   aria-label="Свободное окно, суббота с 12:20 до 18:10"
                 >
                   Окно
@@ -297,7 +307,7 @@ export function CalendarScreen({
                 style={style}
                 className={cn(
                   "absolute z-[2] overflow-hidden rounded-[7px_7px_7px_3px] p-[5px_4px] text-left text-[11px] font-semibold leading-[1.17]",
-                  entryClasses(entry)
+                  entryClasses(entry, preset.participants)
                 )}
                 aria-label={getEntryAriaLabel(entry, preset.trip.timezone)}
               >

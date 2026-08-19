@@ -99,7 +99,10 @@ export function EventScreen({ event, participants, calendarBackground }: { event
                   "grid h-8 w-8 place-items-center rounded-full border-2 border-white text-[11px] font-semibold",
                   participant.tone === "purple" && "bg-primary text-white",
                   participant.tone === "cyan" && "bg-cyan text-ink",
-                  participant.tone === "lime" && "bg-lime text-ink"
+                  participant.tone === "lime" && "bg-lime text-ink",
+                  participant.tone === "coral" && "bg-coral text-white",
+                  participant.tone === "amber" && "bg-[#f4b942] text-ink",
+                  participant.tone === "blue" && "bg-[#4e8cff] text-white"
                 )}
               >
                 {participant.initial}

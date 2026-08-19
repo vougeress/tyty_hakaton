@@ -8,7 +8,12 @@ import type {
 import type { CalendarEvent, TripDetails } from "@/lib/trips/contracts";
 
 const DAY_LABELS = ["Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"];
-const TONES: CalendarParticipant["tone"][] = ["purple", "purple", "cyan", "lime"];
+const TONES: CalendarParticipant["tone"][] = ["purple", "cyan", "lime", "coral", "amber", "blue"];
+
+function participantTone(id: string) {
+  const hash = [...id].reduce((value, character) => ((value * 31) + character.charCodeAt(0)) >>> 0, 7);
+  return TONES[hash % TONES.length];
+}
 
 function zonedDateParts(date: Date, timezone: string) {
   const parts = new Intl.DateTimeFormat("en-CA", {
@@ -39,12 +44,12 @@ function tripDateLabel(trip: TripDetails) {
 }
 
 function calendarParticipants(trip: TripDetails): CalendarParticipant[] {
-  return trip.participants.map((participant, index) => ({
+  return trip.participants.map((participant) => ({
     id: participant.id,
     displayName: participant.displayName,
     shortName: participant.displayName === "Никита" ? "Я" : participant.displayName,
     initial: participant.displayName.slice(0, 1).toUpperCase(),
-    tone: TONES[index % TONES.length]
+    tone: participantTone(participant.id)
   }));
 }
 
