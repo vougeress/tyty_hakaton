@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { FormEvent, useActionState, useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
   ArrowLeft,
@@ -13,11 +14,16 @@ import {
   Heart,
   Link2,
   Plus,
+  RefreshCw,
   Timer,
   Users,
+  WifiOff,
   X
 } from "lucide-react";
-import type { IdeaCandidate, IdeasPreset } from "@/lib/ideas";
+import type { IdeaCandidate, IdeasPreset, IdeasSearchState } from "@/lib/ideas";
+import { readIdeasSelection, writeIdeasSelection } from "@/lib/ideas";
+import { checkCustomIdeaAction, createIdeasPollAction, searchIdeasAction } from "@/app/calendar/gaps/[gapId]/ideas/actions";
+import { PARTICIPANT_STORAGE_KEY } from "@/lib/trips/constants";
 import { cn } from "@/lib/utils";
 
 function formatPrice(price: number) {
@@ -59,6 +65,16 @@ function sourceLabel(source: IdeaCandidate["source"]) {
   if (source === "tutu") return "через Туту";
   if (source === "demo_catalog") return "демо-каталог";
   return "вариант участника";
+}
+
+function formatCheckedAt(checkedAt: string | undefined, timezone: string) {
+  if (!checkedAt) return "время проверки неизвестно";
+  return `проверено ${new Intl.DateTimeFormat("ru-RU", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZone: timezone
+  }).format(new Date(checkedAt))}`;
 }
 
 function CandidateCard({
@@ -142,18 +158,41 @@ function CandidateCard({
   );
 }
 
-export function IdeasScreen({ preset }: { preset: IdeasPreset }) {
+export function IdeasScreen({ preset, initialSearch }: { preset: IdeasPreset; initialSearch: IdeasSearchState }) {
+  const router = useRouter();
+  const [searchState, searchAction, searchPending] = useActionState(searchIdeasAction, initialSearch);
   const [selectedIds, setSelectedIds] = useState(() => new Set(preset.selectedCandidateIds));
+  const [selectionHydrated, setSelectionHydrated] = useState(false);
   const [activeFilter, setActiveFilter] = useState(preset.filters[0]);
   const [showAddForm, setShowAddForm] = useState(false);
   const [customCandidates, setCustomCandidates] = useState<IdeaCandidate[]>([]);
+  const [customPending, setCustomPending] = useState(false);
+  const [customError, setCustomError] = useState<string>();
+  const [pollPending, setPollPending] = useState(false);
+  const [pollError, setPollError] = useState<string>();
 
-  const candidates = useMemo(() => [...preset.candidates, ...customCandidates], [customCandidates, preset.candidates]);
+  const candidates = useMemo(() => [...searchState.candidates, ...customCandidates], [customCandidates, searchState.candidates]);
   const visibleCandidates = useMemo(() => {
+    if (activeFilter === "Автобус") return candidates.filter((candidate) => candidate.travelMode === "bus");
+    if (activeFilter === "Поезд") return candidates.filter((candidate) => candidate.travelMode === "train");
     if (activeFilter === "Культура") return candidates.filter((candidate) => candidate.interest === "Культура");
     if (activeFilter === "Вода") return candidates.filter((candidate) => candidate.interest === "Вода");
     return candidates;
   }, [activeFilter, candidates]);
+  const selectedCandidates = useMemo(
+    () => candidates.filter((candidate) => selectedIds.has(candidate.id) && candidate.check.status !== "blocking"),
+    [candidates, selectedIds]
+  );
+
+  useEffect(() => {
+    const stored = readIdeasSelection(window.localStorage, preset.gapId);
+    if (stored.length > 0) setSelectedIds(new Set(stored));
+    setSelectionHydrated(true);
+  }, [preset.gapId]);
+
+  useEffect(() => {
+    if (selectionHydrated) writeIdeasSelection(window.localStorage, preset.gapId, selectedIds);
+  }, [preset.gapId, selectedIds, selectionHydrated]);
 
   function toggleCandidate(candidateId: string) {
     setSelectedIds((current) => {
@@ -164,48 +203,54 @@ export function IdeasScreen({ preset }: { preset: IdeasPreset }) {
     });
   }
 
-  function addCustomCandidate(event: FormEvent<HTMLFormElement>) {
+  async function addCustomCandidate(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
-    const title = String(formData.get("title") ?? "").trim();
-    if (!title) return;
-    const url = String(formData.get("url") ?? "").trim();
-    const id = `custom-${Date.now()}`;
-    const candidate: IdeaCandidate = {
-      id,
-      gapId: preset.gapId,
-      title,
-      source: "user_link",
-      startsAt: "2026-09-12T14:00:00+03:00",
-      endsAt: "2026-09-12T16:00:00+03:00",
-      travelMode: "mixed",
-      travelMinutes: 0,
-      usefulMinutes: 0,
-      capacity: "unknown",
-      returnBufferMinutes: 0,
-      deeplink: url || undefined,
-      recommendationReason: "Вариант участника будет оценён по тем же правилам, что и системные предложения",
-      check: {
-        status: "checking",
-        reasons: [{
-          code: url ? "user_link_pending" : "manual_candidate_pending",
-          message: url ? "Проверим ссылку и логистику перед голосованием" : "Ручной вариант пройдёт ту же проверку перед голосованием"
-        }]
-      }
-    };
-    setCustomCandidates((current) => [...current, candidate]);
+    formData.set("gapId", preset.gapId);
+    setCustomPending(true);
+    setCustomError(undefined);
+    const result = await checkCustomIdeaAction(formData);
+    setCustomPending(false);
+    if (result.status === "error") {
+      setCustomError(result.message);
+      return;
+    }
+    setCustomCandidates((current) => [...current.filter(({ id }) => id !== result.candidate.id), result.candidate]);
     setShowAddForm(false);
     event.currentTarget.reset();
-    window.setTimeout(() => {
-      setCustomCandidates((current) => current.map((item) => item.id === id ? {
-        ...item,
-        check: {
-          status: "warning",
-          reasons: [{ code: "capacity_unknown", message: "Маршрут принят, но места и логистику нужно подтвердить перед голосованием" }],
-          checkedAt: new Date().toISOString()
-        }
-      } : item));
-    }, 650);
+  }
+
+  async function createPoll() {
+    if (selectedCandidates.length === 0 || pollPending) return;
+    if (preset.tripId === "kazan-demo") {
+      router.push(`/polls/demo-poll?candidates=${encodeURIComponent(selectedCandidates.map(({ id }) => id).join(","))}`);
+      return;
+    }
+    const participantId = window.localStorage.getItem(PARTICIPANT_STORAGE_KEY);
+    if (!participantId) {
+      setPollError("Сначала выберите себя в поездке");
+      return;
+    }
+
+    setPollPending(true);
+    setPollError(undefined);
+    try {
+      const formData = new FormData();
+      formData.set("gapId", preset.gapId);
+      formData.set("destination", searchState.destination);
+      formData.set("participantId", participantId);
+      selectedCandidates.forEach(({ id }) => formData.append("candidateId", id));
+      const result = await createIdeasPollAction(formData);
+      if (result.status === "error") {
+        setPollError(result.message);
+        return;
+      }
+      router.push(`/polls/${result.pollId}`);
+    } catch {
+      setPollError("Не удалось создать голосование. Повторите попытку.");
+    } finally {
+      setPollPending(false);
+    }
   }
 
   return (
@@ -221,6 +266,38 @@ export function IdeasScreen({ preset }: { preset: IdeasPreset }) {
       </header>
 
       <div className="flex-1 px-3 pb-28 pt-3">
+        <form action={searchAction} className="mb-3 rounded-[14px] border border-border bg-white p-3 shadow-card">
+          <input type="hidden" name="gapId" value={preset.gapId} />
+          <label className="grid gap-1 text-[11px] text-ink/58">
+            Куда хотите поехать
+            <span className="flex gap-2">
+              <input
+                name="destination"
+                required
+                defaultValue={searchState.destination}
+                placeholder="Например, Иннополис"
+                className="h-11 min-w-0 flex-1 rounded-[10px] border border-border px-3 text-sm text-ink outline-none focus:border-primary"
+              />
+              <button disabled={searchPending} className="inline-flex h-11 items-center gap-1.5 rounded-[10px] bg-primary px-3 text-xs font-semibold text-white disabled:opacity-60">
+                <RefreshCw aria-hidden="true" size={15} className={searchPending ? "animate-spin" : undefined} />
+                {searchPending ? "Ищем…" : "Найти"}
+              </button>
+            </span>
+          </label>
+          {searchState.status !== "error" && searchState.mode && (
+            <div className="mt-2 flex items-center justify-between gap-2 text-[11px] text-ink/60" aria-live="polite">
+              <span className="inline-flex items-center gap-1">
+                {searchState.mode === "live" ? <CheckCircle2 aria-hidden="true" size={14} className="text-success" /> : <WifiOff aria-hidden="true" size={14} />}
+                {searchState.mode === "live" ? "Данные Туту" : "Fallback: демо-каталог"}
+              </span>
+              <span>{formatCheckedAt(searchState.checkedAt, preset.timezone)}{searchState.cache === "hit" ? " · из кеша" : ""}</span>
+            </div>
+          )}
+          {searchState.warnings.map((warning) => (
+            <p key={warning} className="mt-2 rounded-lg bg-[#fff4d6] px-2.5 py-2 text-[11px] text-[#76540b]">{warning}</p>
+          ))}
+        </form>
+
         <div className="flex gap-2 overflow-x-auto pb-1" aria-label="Фильтры подбора">
           {preset.filters.map((filter) => (
             <button
@@ -239,6 +316,13 @@ export function IdeasScreen({ preset }: { preset: IdeasPreset }) {
         </div>
 
         <div className="mt-3 grid gap-2.5">
+          {searchState.status === "error" && (
+            <div role="alert" className="rounded-[14px] border border-coral bg-[#fff0ee] p-4 text-center">
+              <AlertTriangle aria-hidden="true" className="mx-auto text-[#a32e28]" size={24} />
+              <p className="mt-2 text-sm font-semibold">Не удалось загрузить варианты</p>
+              <p className="mt-1 text-[12px] text-ink/65">{searchState.message}</p>
+            </div>
+          )}
           {visibleCandidates.map((candidate) => (
             <CandidateCard
               key={candidate.id}
@@ -248,10 +332,10 @@ export function IdeasScreen({ preset }: { preset: IdeasPreset }) {
               onToggle={() => toggleCandidate(candidate.id)}
             />
           ))}
-          {visibleCandidates.length === 0 && (
+          {searchState.status !== "error" && visibleCandidates.length === 0 && (
             <div className="rounded-[14px] border border-dashed border-border bg-white p-6 text-center">
-              <p className="text-sm font-semibold">Подходящих вариантов по фильтру пока нет</p>
-              <p className="mt-1 text-[12px] text-ink/65">Выберите другой фильтр или добавьте свой вариант.</p>
+              <p className="text-sm font-semibold">Вариантов пока нет</p>
+              <p className="mt-1 text-[12px] text-ink/65">Измените направление, выберите другой фильтр или добавьте свой вариант.</p>
             </div>
           )}
         </div>
@@ -270,11 +354,12 @@ export function IdeasScreen({ preset }: { preset: IdeasPreset }) {
               Ссылка, необязательно
               <span className="relative">
                 <Link2 aria-hidden="true" size={16} className="absolute left-3 top-3.5" />
-                <input name="url" type="url" placeholder="https://…" className="h-11 w-full rounded-[10px] border border-border pl-9 pr-3 text-sm text-ink outline-none focus:border-primary" />
+                <input name="url" type="url" required pattern="https://.*" placeholder="https://…" className="h-11 w-full rounded-[10px] border border-border pl-9 pr-3 text-sm text-ink outline-none focus:border-primary" />
               </span>
             </label>
-            <button type="submit" className="mt-3 inline-flex h-10 w-full items-center justify-center gap-2 rounded-[10px] bg-primary text-sm font-semibold text-white">
-              <ExternalLink aria-hidden="true" size={16} />Добавить и проверить
+            {customError && <p role="alert" className="mt-2 text-[11px] text-[#a32e28]">{customError}</p>}
+            <button type="submit" disabled={customPending} className="mt-3 inline-flex h-10 w-full items-center justify-center gap-2 rounded-[10px] bg-primary text-sm font-semibold text-white disabled:opacity-60">
+              <ExternalLink aria-hidden="true" size={16} />{customPending ? "Проверяем…" : "Добавить и проверить"}
             </button>
           </form>
         ) : (
@@ -286,13 +371,13 @@ export function IdeasScreen({ preset }: { preset: IdeasPreset }) {
 
       <div className="fixed inset-x-0 bottom-0 z-10 mx-auto flex min-h-[88px] w-full max-w-[430px] items-center justify-between gap-3 bg-ink px-4 py-3 text-white sm:bottom-6 sm:rounded-b-[28px]">
         <div className="min-w-0" aria-live="polite">
-          <strong className="block text-sm">{selectedIds.size} {selectedIds.size === 1 ? "вариант выбран" : "варианта выбрано"}</strong>
-          <span className="text-[11px] text-white/65">Совпадают с интересами группы</span>
+          <strong className="block text-sm">{selectedCandidates.length} {selectedCandidates.length === 1 ? "вариант выбран" : "варианта выбрано"}</strong>
+          <span className={cn("text-[11px]", pollError ? "text-coral" : "text-white/65")}>{pollError ?? "Совпадают с интересами группы"}</span>
         </div>
-        {selectedIds.size > 0 ? (
-          <Link href={`/polls/demo-poll?candidates=${encodeURIComponent(Array.from(selectedIds).join(","))}`} className="inline-flex h-11 shrink-0 items-center gap-2 rounded-[12px_12px_12px_5px] bg-accent px-4 text-sm font-semibold text-ink">
-            На голосование
-          </Link>
+        {selectedCandidates.length > 0 ? (
+          <button type="button" onClick={createPoll} disabled={pollPending} className="inline-flex h-11 shrink-0 items-center gap-2 rounded-[12px_12px_12px_5px] bg-accent px-4 text-sm font-semibold text-ink disabled:opacity-60">
+            {pollPending ? "Создаём…" : "На голосование"}
+          </button>
         ) : (
           <button type="button" disabled className="h-11 shrink-0 rounded-[12px] bg-white/20 px-4 text-sm font-semibold text-white/55">
             На голосование

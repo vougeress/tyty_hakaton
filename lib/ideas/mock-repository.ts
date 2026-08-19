@@ -76,6 +76,7 @@ export const mockIdeasRepository: IdeasRepository = {
 
     return {
       id: "ideas.two_selected",
+      tripId: "kazan-demo",
       gapId,
       dateLabel: "Сб, 12 сентября",
       timeLabel: "12:20–18:10",

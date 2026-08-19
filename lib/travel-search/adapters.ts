@@ -123,8 +123,8 @@ function createToolArgs(type: TravelOptionType, input: TravelSearchInput) {
   if (type === "hotel") {
     return {
       city_name: input.destination,
-      check_in: dateOnly(input.startsAt),
-      check_out: dateOnly(input.endsAt),
+      check_in: dateOnly(input.startsAt, input.timezone),
+      check_out: dateOnly(input.endsAt, input.timezone),
       adults: input.travelers,
       page: 1,
       page_size: 3,
@@ -135,7 +135,7 @@ function createToolArgs(type: TravelOptionType, input: TravelSearchInput) {
   const common = {
     origin: input.origin,
     destination: input.destination,
-    departure_date: dateOnly(input.startsAt),
+    departure_date: dateOnly(input.startsAt, input.timezone),
     page: 1,
     page_size: 3,
     sort: "price_asc",
@@ -240,8 +240,13 @@ function dateValue(value: unknown) {
   return Number.isNaN(date.getTime()) ? undefined : date.toISOString();
 }
 
-function dateOnly(date: Date) {
-  return date.toISOString().slice(0, 10);
+function dateOnly(date: Date, timezone: string) {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: timezone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  }).format(date);
 }
 
 function nested(value: unknown, ...path: string[]) {

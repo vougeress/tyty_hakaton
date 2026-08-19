@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build --webpack",
     "start": "next start",
-    "test": "vitest run lib/feasibility lib/manual-event-service.test.ts lib/repositories/postgres-calendar-repository.integration.test.ts && node --import tsx --test lib/free-windows.test.ts",
+    "test": "vitest run lib/feasibility lib/ideas lib/travel-search lib/polls lib/manual-event-service.test.ts lib/repositories/postgres-calendar-repository.integration.test.ts && node --import tsx --test lib/conflict-repository.test.ts lib/free-windows.test.ts",
     "typecheck": "tsc --noEmit",
     "test:e2e": "playwright test",
     "db:generate": "drizzle-kit generate",
