@@ -17,7 +17,12 @@ function shortTime(iso: string) {
 }
 
 export function EventScreen({ event, participants }: { event: EventDetails; participants: CalendarParticipant[] }) {
-  const statusLabel = event.status === "confirmed" ? "Запланировано" : event.status === "draft" ? "Черновик" : "В плане";
+  const routeUnchecked = event.source === "manual" && event.status !== "confirmed";
+  const statusLabel = event.status === "confirmed"
+    ? "Запланировано"
+    : event.status === "draft"
+      ? "Черновик"
+      : routeUnchecked ? "В плане · маршрут не проверен" : "В плане";
 
   return (
     <main
@@ -40,8 +45,11 @@ export function EventScreen({ event, participants }: { event: EventDetails; part
         <div className="mx-auto mb-3 h-1 w-[38px] rounded-full bg-[#c9ceda]" />
         <div className="flex items-start justify-between gap-3">
           <div>
-            <span className="inline-flex min-h-6 items-center gap-1 rounded-full bg-[#e3f7ef] px-2 text-[11px] font-semibold text-success">
-              <CheckCircle2 aria-hidden="true" size={14} />
+            <span className={cn(
+              "inline-flex min-h-6 items-center gap-1 rounded-full px-2 text-[11px] font-semibold",
+              routeUnchecked ? "bg-[#fff3cf] text-[#775913]" : "bg-[#e3f7ef] text-success"
+            )}>
+              {routeUnchecked ? <Clock3 aria-hidden="true" size={14} /> : <CheckCircle2 aria-hidden="true" size={14} />}
               {statusLabel}
             </span>
             <h1 id="event-title" className="mt-2 text-xl font-semibold leading-6">{event.title}</h1>
@@ -91,7 +99,7 @@ export function EventScreen({ event, participants }: { event: EventDetails; part
           </div>
           <div className="ml-3 text-[11px] leading-4 text-ink/60">
             <strong className="block font-semibold text-ink">Все {participants.length} участника</strong>
-            Маршрут подходит всем
+            {routeUnchecked ? "Маршрут ещё не проверен" : "Маршрут подходит всем"}
           </div>
         </div>
 
