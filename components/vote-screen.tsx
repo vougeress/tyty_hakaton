@@ -151,6 +151,9 @@ export function VoteScreen({ initialPoll }: { initialPoll: PollSnapshot }) {
                 <Link href="/calendar" className="inline-flex h-10 items-center justify-center rounded-[8px] bg-primary px-4 text-sm font-semibold text-white">
                   Открыть календарь
                 </Link>
+                <Link href={`/winners/${poll.winnerCandidateId}`} className="ml-2 inline-flex h-10 items-center justify-center rounded-[8px] border border-border bg-white px-4 text-sm font-semibold text-ink">
+                  Оформление
+                </Link>
               </div>
             ) : (
               <p className="inline-flex items-center gap-2 text-sm font-semibold text-primary">
