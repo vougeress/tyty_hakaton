@@ -73,10 +73,14 @@ export async function searchIdeasAction(
     };
   } catch (error) {
     const automatic = searchKind === "attractions";
+    console.error(
+      automatic ? "[ideas:gigachat] automatic suggestion failed" : "[ideas:tutu] search failed",
+      error instanceof Error ? error.message : "Unknown error"
+    );
     return {
       status: "error",
       message: automatic
-        ? "GigaChat пока недоступен. Добавьте GIGACHAT_AUTH_KEY или попробуйте ручной поиск."
+        ? "GigaChat пока не смог подобрать места. Повторите попытку через несколько секунд."
         : error instanceof ZodError ? "Проверьте направление" : "Сервис вариантов временно недоступен",
       destination,
       candidates: [],

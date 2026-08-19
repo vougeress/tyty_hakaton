@@ -14,7 +14,6 @@ import {
   Heart,
   Link2,
   Plus,
-  RefreshCw,
   Sparkles,
   Timer,
   Users,
@@ -299,22 +298,6 @@ export function IdeasScreen({ preset, initialSearch, mockMode = false }: { prese
               {searchPending ? "Подбираем…" : "Подобрать рядом автоматически"}
             </button>
           </div>
-          <label className="grid gap-1 text-[11px] text-ink/58">
-            Или укажите направление вручную
-            <span className="flex gap-2">
-              <input
-                name="destination"
-                required
-                defaultValue={searchState.destination}
-                placeholder="Например, Иннополис"
-                className="h-11 min-w-0 flex-1 rounded-[10px] border border-border px-3 text-sm text-ink outline-none focus:border-primary"
-              />
-              <button name="searchKind" value="travel" disabled={searchPending} className="inline-flex h-11 items-center gap-1.5 rounded-[10px] bg-primary px-3 text-xs font-semibold text-white disabled:opacity-60">
-                <RefreshCw aria-hidden="true" size={15} className={searchPending ? "animate-spin" : undefined} />
-                {searchPending ? "Ищем…" : "Найти"}
-              </button>
-            </span>
-          </label>
           {searchState.status !== "error" && searchState.mode && (
             <div className="mt-2 flex items-center justify-between gap-2 text-[11px] text-ink/60" aria-live="polite">
               <span className="inline-flex items-center gap-1">
@@ -367,7 +350,7 @@ export function IdeasScreen({ preset, initialSearch, mockMode = false }: { prese
           {searchState.status !== "error" && visibleCandidates.length === 0 && (
             <div className="rounded-[14px] border border-dashed border-border bg-white p-6 text-center">
               <p className="text-sm font-semibold">Вариантов пока нет</p>
-              <p className="mt-1 text-[12px] text-ink/65">Измените направление, выберите другой фильтр или добавьте свой вариант.</p>
+              <p className="mt-1 text-[12px] text-ink/65">Запустите автоматический подбор или добавьте свой вариант.</p>
             </div>
           )}
         </div>
