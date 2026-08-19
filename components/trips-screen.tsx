@@ -19,7 +19,9 @@ import {
   joinTripAction,
   type TripActionState
 } from "@/app/trips/actions";
-import { PARTICIPANT_STORAGE_KEY, TRIP_STORAGE_KEY } from "@/lib/trips/constants";
+import { TRIP_STORAGE_KEY } from "@/lib/trips/constants";
+import { saveCurrentParticipantId } from "@/lib/current-participant";
+import { useCurrentParticipantId } from "@/lib/use-current-participant";
 import { cn } from "@/lib/utils";
 
 export type TripsViewModel = {
@@ -75,7 +77,7 @@ function JoinForm({ compact = false }: { compact?: boolean }) {
   useEffect(() => {
     if (state.status !== "success" || !state.tripId || !state.participantId) return;
     window.localStorage.setItem(TRIP_STORAGE_KEY, state.tripId);
-    window.localStorage.setItem(PARTICIPANT_STORAGE_KEY, state.participantId);
+    saveCurrentParticipantId(state.participantId);
     router.push("/calendar");
   }, [router, state]);
 
@@ -114,7 +116,7 @@ function CreateTripForm({ onClose }: { onClose: () => void }) {
   useEffect(() => {
     if (state.status !== "success" || !state.tripId || !state.participantId) return;
     window.localStorage.setItem(TRIP_STORAGE_KEY, state.tripId);
-    window.localStorage.setItem(PARTICIPANT_STORAGE_KEY, state.participantId);
+    saveCurrentParticipantId(state.participantId);
     router.push("/calendar");
   }, [router, state]);
 
@@ -144,7 +146,11 @@ function CreateTripForm({ onClose }: { onClose: () => void }) {
 export function TripsScreen({ trip }: { trip: TripsViewModel }) {
   const [showCreate, setShowCreate] = useState(false);
   const [copied, setCopied] = useState(false);
-  const currentParticipant = trip.participants.find(({ id }) => id === trip.ownerId) ?? trip.participants[0];
+  const currentParticipantId = useCurrentParticipantId(
+    trip.participants.map(({ id }) => id),
+    trip.ownerId
+  );
+  const currentParticipant = trip.participants.find(({ id }) => id === currentParticipantId) ?? trip.participants[0];
 
   async function copyInviteCode() {
     await navigator.clipboard.writeText(trip.inviteCode);
