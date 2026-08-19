@@ -1,5 +1,5 @@
-import { ScreenView } from "@/components/screen-view";
+import { JoinTripScreen } from "@/components/trips-screen";
 
 export default function TripsJoinPage() {
-  return <ScreenView screenId="trips" />;
+  return <JoinTripScreen />;
 }

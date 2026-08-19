@@ -7,12 +7,15 @@ import { eventParticipants, events, participants, tripMembers, trips } from "@/d
 
 const ids = {
   trip: "00000000-0000-4000-8000-000000000001",
+  saintPetersburg: "00000000-0000-4000-8000-000000000002",
+  nizhnyNovgorod: "00000000-0000-4000-8000-000000000003",
+  sochi: "00000000-0000-4000-8000-000000000004",
   nikita: "00000000-0000-4000-8000-000000000101",
   anna: "00000000-0000-4000-8000-000000000102",
   maria: "00000000-0000-4000-8000-000000000103",
   ilya: "00000000-0000-4000-8000-000000000104",
   kremlin: "00000000-0000-4000-8000-000000001001",
-  checkout: "00000000-0000-4000-8000-000000001002",
+  centerTransfer: "00000000-0000-4000-8000-000000001002",
   dinner: "00000000-0000-4000-8000-000000001003",
   train: "00000000-0000-4000-8000-000000001004"
 } as const;
@@ -48,11 +51,56 @@ async function seed() {
       .onConflictDoNothing();
 
     await tx
+      .insert(trips)
+      .values([
+        {
+          id: ids.saintPetersburg,
+          title: "Санкт-Петербург",
+          timezone: "Europe/Moscow",
+          startsAt: new Date("2026-06-12T00:00:00+03:00"),
+          endsAt: new Date("2026-06-15T23:59:59+03:00"),
+          ownerId: ids.nikita,
+          inviteCode: "SPB2026",
+          status: "archived"
+        },
+        {
+          id: ids.nizhnyNovgorod,
+          title: "Нижний Новгород",
+          timezone: "Europe/Moscow",
+          startsAt: new Date("2026-05-02T00:00:00+03:00"),
+          endsAt: new Date("2026-05-05T23:59:59+03:00"),
+          ownerId: ids.nikita,
+          inviteCode: "NN2026",
+          status: "archived"
+        },
+        {
+          id: ids.sochi,
+          title: "Сочи",
+          timezone: "Europe/Moscow",
+          startsAt: new Date("2026-01-03T00:00:00+03:00"),
+          endsAt: new Date("2026-01-10T23:59:59+03:00"),
+          ownerId: ids.nikita,
+          inviteCode: "SOCHI2026",
+          status: "archived"
+        }
+      ])
+      .onConflictDoNothing();
+
+    await tx
       .insert(tripMembers)
       .values(participantIds.map((participantId, index) => ({
         tripId: ids.trip,
         participantId,
         role: index === 0 ? "owner" as const : "member" as const
+      })))
+      .onConflictDoNothing();
+
+    await tx
+      .insert(tripMembers)
+      .values([ids.saintPetersburg, ids.nizhnyNovgorod, ids.sochi].map((tripId) => ({
+        tripId,
+        participantId: ids.nikita,
+        role: "owner" as const
       })))
       .onConflictDoNothing();
 
@@ -71,14 +119,14 @@ async function seed() {
           source: "manual"
         },
         {
-          id: ids.checkout,
+          id: ids.centerTransfer,
           tripId: ids.trip,
-          type: "booking",
+          type: "transfer",
           status: "confirmed",
-          title: "Выезд из отеля",
-          startsAt: new Date("2026-09-12T11:50:00+03:00"),
-          endsAt: new Date("2026-09-12T12:20:00+03:00"),
-          locationName: "Отель в центре Казани",
+          title: "Переезд в центр",
+          startsAt: new Date("2026-09-12T10:00:00+03:00"),
+          endsAt: new Date("2026-09-12T11:55:00+03:00"),
+          locationName: "Центр Казани",
           source: "manual"
         },
         {
@@ -105,12 +153,25 @@ async function seed() {
           externalRef: "demo:tutu:train-kazan-moscow"
         }
       ])
-      .onConflictDoNothing();
+      .onConflictDoUpdate({
+        target: events.id,
+        set: {
+          type: sql`excluded.type`,
+          status: sql`excluded.status`,
+          title: sql`excluded.title`,
+          startsAt: sql`excluded.starts_at`,
+          endsAt: sql`excluded.ends_at`,
+          locationName: sql`excluded.location_name`,
+          source: sql`excluded.source`,
+          externalRef: sql`excluded.external_ref`,
+          updatedAt: new Date()
+        }
+      });
 
     await tx
       .insert(eventParticipants)
       .values(
-        [ids.kremlin, ids.checkout, ids.dinner, ids.train].flatMap((eventId) =>
+        [ids.kremlin, ids.centerTransfer, ids.dinner, ids.train].flatMap((eventId) =>
           participantIds.map((participantId) => ({ eventId, participantId }))
         )
       )
