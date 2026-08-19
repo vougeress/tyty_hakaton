@@ -13,8 +13,9 @@ import {
   Footprints,
   Heart,
   Link2,
+  MapPin,
   Plus,
-  RefreshCw,
+  Sparkles,
   Timer,
   Users,
   WifiOff,
@@ -63,6 +64,7 @@ function checkTone(status: IdeaCandidate["check"]["status"]) {
 
 function sourceLabel(source: IdeaCandidate["source"]) {
   if (source === "tutu") return "через Туту";
+  if (source === "gigachat") return "рядом";
   if (source === "demo_catalog") return "демо-каталог";
   return "вариант участника";
 }
@@ -95,6 +97,65 @@ function CandidateCard({
   const tone = checkTone(candidate.check.status);
   const TravelIcon = candidate.travelMode === "walk" ? Footprints : BusFront;
   const checkReason = candidate.check.reasons[0]?.message ?? "Проверка ещё не завершена";
+
+  if (candidate.source === "gigachat") {
+    const fitsWindow = candidate.check.status === "valid" || candidate.check.status === "warning";
+    return (
+      <article
+        className={cn(
+          "rounded-[14px_14px_14px_5px] border bg-white p-4 shadow-card transition",
+          selected && "border-primary ring-2 ring-primary/15",
+          !fitsWindow && "border-coral bg-[#fff0ee]",
+          !selected && fitsWindow && "border-border"
+        )}
+        data-candidate-id={candidate.id}
+        data-check-status={candidate.check.status}
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h2 className="text-[16px] font-semibold leading-5">{candidate.title}</h2>
+            <p className="mt-1 text-[11px] text-ink/58">{candidate.interest ?? "Достопримечательность"}</p>
+          </div>
+          {candidate.distanceKm !== undefined && (
+            <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary-strong">
+              <MapPin aria-hidden="true" size={13} />{candidate.distanceKm < 0.1 ? "рядом" : `~${candidate.distanceKm.toFixed(1)} км`}
+            </span>
+          )}
+        </div>
+
+        {candidate.description && <p className="mt-3 text-[12px] leading-5 text-ink/70">{candidate.description}</p>}
+        <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5 text-[11px] text-ink/60">
+          <span className="inline-flex items-center gap-1"><Timer aria-hidden="true" size={15} />{formatDuration(candidate.usefulMinutes)} на посещение</span>
+          {candidate.address && <span className="inline-flex items-center gap-1"><MapPin aria-hidden="true" size={15} />{candidate.address}</span>}
+        </div>
+
+        <div className="mt-3 flex items-end justify-between gap-3">
+          <div className={cn("min-w-0 text-[11px] leading-4", fitsWindow ? "text-success" : "text-[#a32e28]")}>
+            <span className="inline-flex items-center gap-1 font-semibold">
+              {fitsWindow ? <CheckCircle2 aria-hidden="true" size={15} /> : <AlertTriangle aria-hidden="true" size={15} />}
+              {fitsWindow ? "Подходит по времени" : "Не помещается в окно"}
+            </span>
+            {!fitsWindow && <p className="mt-1 text-ink/65">{checkReason}</p>}
+          </div>
+          {fitsWindow ? (
+            <button
+              type="button"
+              onClick={onToggle}
+              aria-pressed={selected}
+              className={cn(
+                "shrink-0 rounded-[10px] px-3 py-2 text-[11px] font-semibold",
+                selected ? "bg-primary text-white" : "border border-border bg-white text-ink"
+              )}
+            >
+              {selected ? "Добавлено" : "Добавить"}
+            </button>
+          ) : (
+            <span className="shrink-0 rounded-[10px] bg-white/70 px-3 py-2 text-[11px] font-semibold text-[#a32e28]">Недоступно</span>
+          )}
+        </div>
+      </article>
+    );
+  }
 
   return (
     <article
@@ -169,7 +230,6 @@ export function IdeasScreen({ preset, initialSearch, mockMode = false }: { prese
   const [searchState, searchAction, searchPending] = useActionState(searchIdeasAction, initialSearch);
   const [selectedIds, setSelectedIds] = useState(() => new Set(preset.selectedCandidateIds));
   const [selectionHydrated, setSelectionHydrated] = useState(false);
-  const [activeFilter, setActiveFilter] = useState(preset.filters[0]);
   const [showAddForm, setShowAddForm] = useState(false);
   const [customCandidates, setCustomCandidates] = useState<IdeaCandidate[]>([]);
   const [customPending, setCustomPending] = useState(false);
@@ -178,13 +238,7 @@ export function IdeasScreen({ preset, initialSearch, mockMode = false }: { prese
   const [pollError, setPollError] = useState<string>();
 
   const candidates = useMemo(() => [...searchState.candidates, ...customCandidates], [customCandidates, searchState.candidates]);
-  const visibleCandidates = useMemo(() => {
-    if (activeFilter === "Автобус") return candidates.filter((candidate) => candidate.travelMode === "bus");
-    if (activeFilter === "Поезд") return candidates.filter((candidate) => candidate.travelMode === "train");
-    if (activeFilter === "Культура") return candidates.filter((candidate) => candidate.interest === "Культура");
-    if (activeFilter === "Вода") return candidates.filter((candidate) => candidate.interest === "Вода");
-    return candidates;
-  }, [activeFilter, candidates]);
+  const visibleCandidates = candidates;
   const selectedCandidates = useMemo(
     () => candidates.filter((candidate) => selectedIds.has(candidate.id) && candidate.check.status !== "blocking"),
     [candidates, selectedIds]
@@ -244,6 +298,7 @@ export function IdeasScreen({ preset, initialSearch, mockMode = false }: { prese
       const formData = new FormData();
       formData.set("gapId", preset.gapId);
       formData.set("destination", searchState.destination);
+      if (searchState.provider) formData.set("provider", searchState.provider);
       formData.set("participantId", participantId);
       selectedCandidates.forEach(({ id }) => formData.append("candidateId", id));
       const result = await createIdeasPollAction(formData);
@@ -267,30 +322,36 @@ export function IdeasScreen({ preset, initialSearch, mockMode = false }: { prese
         </Link>
         <div className="min-w-0">
           <h1 className="text-[17px] font-semibold">Чем заполнить окно?</h1>
-          <p className="mt-0.5 text-[12px] text-ink/58">{preset.dateLabel} · {preset.timeLabel} · до {formatPrice(preset.budgetPerPerson)}/чел.</p>
+          <p className="mt-0.5 text-[12px] text-ink/58">{preset.dateLabel} · {preset.timeLabel}</p>
         </div>
       </header>
 
       <div className="flex-1 px-3 pb-28 pt-3">
         <form action={searchAction} className="mb-3 rounded-[14px] border border-border bg-white p-3 shadow-card">
           <input type="hidden" name="gapId" value={preset.gapId} />
-          <label className="grid gap-1 text-[11px] text-ink/58">
-            Куда хотите поехать
-            <span className="flex gap-2">
-              <input
-                name="destination"
-                required
-                defaultValue={searchState.destination}
-                placeholder="Например, Иннополис"
-                className="h-11 min-w-0 flex-1 rounded-[10px] border border-border px-3 text-sm text-ink outline-none focus:border-primary"
-              />
-              <button disabled={searchPending} className="inline-flex h-11 items-center gap-1.5 rounded-[10px] bg-primary px-3 text-xs font-semibold text-white disabled:opacity-60">
-                <RefreshCw aria-hidden="true" size={15} className={searchPending ? "animate-spin" : undefined} />
-                {searchPending ? "Ищем…" : "Найти"}
-              </button>
-            </span>
-          </label>
-          {searchState.status !== "error" && searchState.mode && (
+          <div className="mb-3 rounded-[12px_12px_12px_5px] bg-primary/10 p-3">
+            <div className="flex items-start gap-2.5">
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px_10px_10px_4px] bg-primary text-white">
+                <Sparkles aria-hidden="true" size={18} />
+              </span>
+              <div className="min-w-0 flex-1">
+                <strong className="block text-sm">Не знаете, куда пойти?</strong>
+                <p className="mt-0.5 text-[11px] leading-4 text-ink/65">Учтём текущую точку из плана, расстояние и свободное время.</p>
+              </div>
+            </div>
+            <button
+              type="submit"
+              name="searchKind"
+              value="attractions"
+              formNoValidate
+              disabled={searchPending}
+              className="mt-2.5 inline-flex h-10 w-full items-center justify-center gap-2 rounded-[10px] bg-accent text-xs font-semibold text-ink disabled:opacity-60"
+            >
+              <Sparkles aria-hidden="true" size={15} className={searchPending ? "animate-pulse" : undefined} />
+              {searchPending ? "Подбираем…" : "Подобрать рядом автоматически"}
+            </button>
+          </div>
+          {searchState.status !== "error" && searchState.mode && searchState.provider !== "gigachat" && (
             <div className="mt-2 flex items-center justify-between gap-2 text-[11px] text-ink/60" aria-live="polite">
               <span className="inline-flex items-center gap-1">
                 {searchState.mode === "live" ? <CheckCircle2 aria-hidden="true" size={14} className="text-success" /> : <WifiOff aria-hidden="true" size={14} />}
@@ -304,24 +365,7 @@ export function IdeasScreen({ preset, initialSearch, mockMode = false }: { prese
           ))}
         </form>
 
-        <div className="flex gap-2 overflow-x-auto pb-1" aria-label="Фильтры подбора">
-          {preset.filters.map((filter) => (
-            <button
-              key={filter}
-              type="button"
-              aria-pressed={activeFilter === filter}
-              onClick={() => setActiveFilter(filter)}
-              className={cn(
-                "min-h-[34px] shrink-0 rounded-full border px-3 text-[12px] font-semibold",
-                activeFilter === filter ? "border-primary bg-primary/10 text-primary-strong" : "border-border bg-white"
-              )}
-            >
-              {filter}
-            </button>
-          ))}
-        </div>
-
-        <div className="mt-3 grid gap-2.5">
+        <div className="grid gap-2.5">
           {searchState.status === "error" && (
             <div role="alert" className="rounded-[14px] border border-coral bg-[#fff0ee] p-4 text-center">
               <AlertTriangle aria-hidden="true" className="mx-auto text-[#a32e28]" size={24} />
@@ -342,7 +386,7 @@ export function IdeasScreen({ preset, initialSearch, mockMode = false }: { prese
           {searchState.status !== "error" && visibleCandidates.length === 0 && (
             <div className="rounded-[14px] border border-dashed border-border bg-white p-6 text-center">
               <p className="text-sm font-semibold">Вариантов пока нет</p>
-              <p className="mt-1 text-[12px] text-ink/65">Измените направление, выберите другой фильтр или добавьте свой вариант.</p>
+              <p className="mt-1 text-[12px] text-ink/65">Запустите автоматический подбор или добавьте свой вариант.</p>
             </div>
           )}
         </div>
@@ -379,7 +423,7 @@ export function IdeasScreen({ preset, initialSearch, mockMode = false }: { prese
       <div className="fixed inset-x-0 bottom-0 z-10 mx-auto flex min-h-[88px] w-full max-w-[430px] items-center justify-between gap-3 bg-ink px-4 py-3 text-white sm:bottom-6 sm:rounded-b-[28px]">
         <div className="min-w-0" aria-live="polite">
           <strong className="block text-sm">{selectedCandidates.length} {selectedCandidates.length === 1 ? "вариант выбран" : "варианта выбрано"}</strong>
-          <span className={cn("text-[11px]", pollError ? "text-coral" : "text-white/65")}>{pollError ?? "Совпадают с интересами группы"}</span>
+          <span className={cn("text-[11px]", pollError ? "text-coral" : "text-white/65")}>{pollError ?? "Можно выбрать несколько мест"}</span>
         </div>
         {selectedCandidates.length > 0 ? (
           <button type="button" onClick={createPoll} disabled={pollPending} className="inline-flex h-11 shrink-0 items-center gap-2 rounded-[12px_12px_12px_5px] bg-accent px-4 text-sm font-semibold text-ink disabled:opacity-60">

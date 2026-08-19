@@ -25,6 +25,7 @@ export default async function IdeasPage({
       destination,
       candidates: preset.candidates,
       mode: "mock",
+      provider: "demo_catalog",
       cache: "miss",
       checkedAt: preset.candidates[0]?.check.checkedAt,
       warnings: ["Тестовый режим: показаны демонстрационные варианты"]
