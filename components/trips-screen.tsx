@@ -19,7 +19,9 @@ import {
   joinTripAction,
   type TripActionState
 } from "@/app/trips/actions";
-import { PARTICIPANT_STORAGE_KEY, TRIP_STORAGE_KEY } from "@/lib/trips/constants";
+import { TRIP_STORAGE_KEY } from "@/lib/trips/constants";
+import { saveCurrentParticipantId } from "@/lib/current-participant";
+import { useCurrentParticipantId } from "@/lib/use-current-participant";
 import { cn } from "@/lib/utils";
 
 export type TripsViewModel = {
@@ -75,7 +77,7 @@ function JoinForm({ compact = false }: { compact?: boolean }) {
   useEffect(() => {
     if (state.status !== "success" || !state.tripId || !state.participantId) return;
     window.localStorage.setItem(TRIP_STORAGE_KEY, state.tripId);
-    window.localStorage.setItem(PARTICIPANT_STORAGE_KEY, state.participantId);
+    saveCurrentParticipantId(state.participantId);
     router.push("/calendar");
   }, [router, state]);
 
@@ -114,7 +116,7 @@ function CreateTripForm({ onClose }: { onClose: () => void }) {
   useEffect(() => {
     if (state.status !== "success" || !state.tripId || !state.participantId) return;
     window.localStorage.setItem(TRIP_STORAGE_KEY, state.tripId);
-    window.localStorage.setItem(PARTICIPANT_STORAGE_KEY, state.participantId);
+    saveCurrentParticipantId(state.participantId);
     router.push("/calendar");
   }, [router, state]);
 
@@ -144,7 +146,11 @@ function CreateTripForm({ onClose }: { onClose: () => void }) {
 export function TripsScreen({ trip }: { trip: TripsViewModel }) {
   const [showCreate, setShowCreate] = useState(false);
   const [copied, setCopied] = useState(false);
-  const currentParticipant = trip.participants.find(({ id }) => id === trip.ownerId) ?? trip.participants[0];
+  const currentParticipantId = useCurrentParticipantId(
+    trip.participants.map(({ id }) => id),
+    trip.ownerId
+  );
+  const currentParticipant = trip.participants.find(({ id }) => id === currentParticipantId) ?? trip.participants[0];
 
   async function copyInviteCode() {
     await navigator.clipboard.writeText(trip.inviteCode);
@@ -203,6 +209,36 @@ export function TripsScreen({ trip }: { trip: TripsViewModel }) {
                 {copied ? "Скопировано" : "Копировать код"}
               </button>
             </div>
+          </div>
+        </section>
+
+        <section>
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-base font-semibold">Участники</h2>
+            <Users aria-hidden="true" size={18} className="text-primary" />
+          </div>
+          <div className="grid gap-2 rounded-[8px] border border-border bg-white p-3 shadow-card" aria-label="Выберите свой профиль">
+            {trip.participants.map((participant) => {
+              const selected = participant.id === currentParticipant?.id;
+              return (
+                <button
+                  key={participant.id}
+                  type="button"
+                  aria-pressed={selected}
+                  onClick={() => saveCurrentParticipantId(participant.id)}
+                  className={cn(
+                    "flex min-h-11 items-center gap-3 rounded-[8px] border px-3 text-left transition",
+                    selected ? "border-primary bg-primary/10" : "border-border bg-white"
+                  )}
+                >
+                  <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-primary text-xs font-semibold text-white">
+                    {participant.displayName.slice(0, 1).toUpperCase()}
+                  </span>
+                  <span className="min-w-0 flex-1 truncate text-sm font-semibold">{participant.displayName}</span>
+                  <span className="text-[11px] text-ink/55">{selected ? "Я" : participant.role === "owner" ? "Организатор" : "Участник"}</span>
+                </button>
+              );
+            })}
           </div>
         </section>
 
