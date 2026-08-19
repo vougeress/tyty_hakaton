@@ -22,10 +22,10 @@ export class TravelSearchService {
     private readonly mockAdapter: TravelSearchAdapter = new MockTravelSearchAdapter()
   ) {}
 
-  async search(input: unknown): Promise<TravelSearchResult> {
+  async search(input: unknown, options: { bypassCache?: boolean } = {}): Promise<TravelSearchResult> {
     const validated = travelSearchInputSchema.parse(input);
     const cacheKey = createCacheKey(validated);
-    const cached = getCached<TravelSearchResult>(cacheKey);
+    const cached = options.bypassCache ? undefined : getCached<TravelSearchResult>(cacheKey);
     if (cached) return { ...cached, cache: "hit" };
 
     const warnings: string[] = [];
@@ -74,6 +74,7 @@ function createCacheKey(input: TravelSearchInput) {
     .update(JSON.stringify({
       origin: input.origin,
       destination: input.destination,
+      timezone: input.timezone,
       startsAt: input.startsAt.toISOString(),
       endsAt: input.endsAt.toISOString(),
       travelers: input.travelers,
