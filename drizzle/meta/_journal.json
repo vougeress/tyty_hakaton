@@ -15,6 +15,13 @@
       "when": 1787151562025,
       "tag": "0001_conscious_stardust",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1787152430926,
+      "tag": "0002_previous_hiroim",
+      "breakpoints": true
     }
   ]
 }

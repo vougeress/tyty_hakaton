@@ -41,11 +41,37 @@ export const closePollInputSchema = z.object({
   idempotencyKey: z.string().trim().min(8).max(120).optional()
 });
 
+export const bookingStatusSchema = z.enum([
+  "idle",
+  "available",
+  "price_changed",
+  "sold_out",
+  "booking_failed",
+  "confirmed"
+]);
+
+export const recheckWinnerInputSchema = z.object({
+  pollId: z.uuid(),
+  participantId: z.uuid(),
+  mode: z.enum(["auto", "mock", "live"]).default("auto"),
+  idempotencyKey: z.string().trim().min(8).max(120).optional()
+});
+
+export const confirmWinnerBookingInputSchema = z.object({
+  pollId: z.uuid(),
+  participantId: z.uuid(),
+  bookingUrl: z.url().optional(),
+  idempotencyKey: z.string().trim().min(8).max(120).optional()
+});
+
 export type VoteValue = z.infer<typeof voteValueSchema>;
+export type BookingStatus = z.infer<typeof bookingStatusSchema>;
 export type CreatePollInput = z.infer<typeof createPollInputSchema>;
 export type AddCandidateInput = z.infer<typeof addCandidateInputSchema>;
 export type SubmitVoteInput = z.infer<typeof submitVoteInputSchema>;
 export type ClosePollInput = z.infer<typeof closePollInputSchema>;
+export type RecheckWinnerInput = z.infer<typeof recheckWinnerInputSchema>;
+export type ConfirmWinnerBookingInput = z.infer<typeof confirmWinnerBookingInputSchema>;
 
 export type CandidateTally = Record<VoteValue, number>;
 
@@ -55,6 +81,14 @@ export type PollCandidateSnapshot = {
   description: string | null;
   travelOptionId: string | null;
   pricePerPerson: number | null;
+  recheckedPricePerPerson: number | null;
+  availableSeats: number | null;
+  bookingUrl: string | null;
+  bookingStatus: BookingStatus;
+  bookingFailureReason: string | null;
+  lastCheckedAt: string | null;
+  bookingConfirmedAt: string | null;
+  bookingConfirmedByParticipantId: string | null;
   source: string;
   createdByParticipantId: string | null;
   tally: CandidateTally;
