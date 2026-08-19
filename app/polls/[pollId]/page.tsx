@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import { VoteScreen } from "@/components/vote-screen";
 import { createPollRepository } from "@/lib/polls";
@@ -16,6 +16,7 @@ export default async function PollPage({ params }: { params: Promise<{ pollId: s
     : await repository.getPoll(pollId).catch(() => null);
 
   if (!poll || poll.tripId !== currentTripId) notFound();
+  if (poll.status === "closed" && poll.winnerCandidateId) redirect("/calendar");
   const trip = await createTripService().getTrip(poll.tripId);
   if (!trip) notFound();
 

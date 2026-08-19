@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 
 import { getDatabase } from "@/db/client";
 import { eventParticipants, events, participants, tripMembers, trips } from "@/db/schema";
@@ -98,6 +98,7 @@ export class DrizzleTripRepository implements TripRepository {
   }
 
   async listEvents(tripId: string): Promise<CalendarEvent[]> {
+    await promoteClosedPollEventsForTrip(tripId);
     const eventRows = await getDatabase()
       .select()
       .from(events)
@@ -121,6 +122,7 @@ export class DrizzleTripRepository implements TripRepository {
   }
 
   async findEventById(id: string): Promise<CalendarEvent | null> {
+    await promoteClosedPollEvent(id);
     const [event] = await getDatabase().select().from(events).where(eq(events.id, id)).limit(1);
     if (!event) return null;
 
@@ -200,4 +202,38 @@ export class DrizzleTripRepository implements TripRepository {
       externalRef: event.externalRef
     };
   }
+}
+
+async function promoteClosedPollEventsForTrip(tripId: string) {
+  await getDatabase().execute(sql`
+    update events as calendar_event
+    set
+      type = 'event'::event_type,
+      status = 'confirmed'::event_status,
+      title = winner.title,
+      updated_at = now()
+    from polls as poll
+    inner join candidates as winner on winner.id = poll.winner_candidate_id
+    where calendar_event.trip_id = ${tripId}
+      and calendar_event.type = 'poll'::event_type
+      and calendar_event.external_ref = poll.id::text
+      and poll.status = 'closed'::poll_status
+  `);
+}
+
+async function promoteClosedPollEvent(eventId: string) {
+  await getDatabase().execute(sql`
+    update events as calendar_event
+    set
+      type = 'event'::event_type,
+      status = 'confirmed'::event_status,
+      title = winner.title,
+      updated_at = now()
+    from polls as poll
+    inner join candidates as winner on winner.id = poll.winner_candidate_id
+    where calendar_event.id = ${eventId}
+      and calendar_event.type = 'poll'::event_type
+      and calendar_event.external_ref = poll.id::text
+      and poll.status = 'closed'::poll_status
+  `);
 }

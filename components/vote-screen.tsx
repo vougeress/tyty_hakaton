@@ -119,6 +119,7 @@ export function VoteScreen({ initialPoll, participantIds, ownerId, timezone }: {
       if (!response.ok) throw new Error("close_failed");
       const payload = await response.json() as { poll: PollSnapshot };
       setPoll(payload.poll);
+      if (payload.poll.winnerCandidateId) router.push("/calendar");
     } catch {
       setErrorMessage("Не удалось подвести итог. Попробуйте ещё раз.");
     } finally {
@@ -225,16 +226,11 @@ export function VoteScreen({ initialPoll, participantIds, ownerId, timezone }: {
         {poll.status === "closed" && (
           <div className="rounded-[8px] border border-border bg-white p-4 shadow-card">
             {poll.winnerCandidateId ? (
-              <div className="space-y-3">
+              <div>
                 <p className="inline-flex items-center gap-2 text-sm font-semibold text-success">
                   <Trophy aria-hidden="true" size={17} /> Победитель: {winner?.title ?? "выбран"}
                 </p>
-                <Link href={`/winners/${poll.winnerCandidateId}`} className="inline-flex h-10 items-center justify-center rounded-[8px] bg-primary px-4 text-sm font-semibold text-white">
-                  Открыть победителя
-                </Link>
-                <Link href={`/winners/${poll.winnerCandidateId}`} className="ml-2 inline-flex h-10 items-center justify-center rounded-[8px] border border-border bg-white px-4 text-sm font-semibold text-ink">
-                  Оформление
-                </Link>
+                <p className="mt-2 text-xs text-ink/58">Событие добавлено в календарь.</p>
               </div>
             ) : poll.finalistCandidateIds.length > 0 ? (
               <div className="grid gap-3">

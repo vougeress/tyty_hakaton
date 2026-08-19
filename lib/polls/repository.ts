@@ -462,6 +462,7 @@ async function syncPollCalendarEvent(
   await db
     .update(events)
     .set({
+      type: winnerTitle ? "event" : "poll",
       status: winnerTitle ? "confirmed" : "conflicted",
       title: winnerTitle ?? "Голосование: нужен финальный выбор",
       updatedAt: new Date()
