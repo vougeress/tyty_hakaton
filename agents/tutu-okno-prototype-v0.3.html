@@ -1,0 +1,3377 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; style-src 'unsafe-inline' blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; img-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; font-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; media-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; worker-src blob:; connect-src blob: data:; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<title>Tutu Окно — прототип v0.3</title>
+<style>:root{color-scheme:light dark;background:light-dark(rgb(255 255 255), rgb(24 24 24))}html,body{margin:0}body{box-sizing:border-box;padding:1rem;background:inherit}iframe{display:block;width:100%;height:calc(100vh - 2rem);margin:0 auto;border:0}</style>
+</head>
+<body>
+<iframe sandbox="allow-scripts" referrerpolicy="no-referrer" title="Tutu Окно — прототип v0.3" srcdoc="&lt;!doctype html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+&lt;meta charset=&quot;utf-8&quot;&gt;
+&lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1&quot;&gt;
+&lt;meta name=&quot;referrer&quot; content=&quot;no-referrer&quot;&gt;
+&lt;meta http-equiv=&quot;Content-Security-Policy&quot; content=&quot;default-src &#x27;none&#x27;; script-src &#x27;unsafe-inline&#x27; &#x27;unsafe-eval&#x27; &#x27;wasm-unsafe-eval&#x27; blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; style-src &#x27;unsafe-inline&#x27; blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; img-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; font-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; media-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; worker-src blob:; connect-src blob: data:; frame-src &#x27;none&#x27;; object-src &#x27;none&#x27;; base-uri &#x27;none&#x27;; form-action &#x27;none&#x27;&quot;&gt;
+&lt;title&gt;Tutu Окно — прототип v0.3&lt;/title&gt;
+&lt;style&gt;:root {
+  color-scheme: light dark;
+  background-color: var(
+    --background,
+    var(--color-background-primary, light-dark(rgb(255 255 255), rgb(24 24 24)))
+  ) !important;
+
+  /* Agent-facing contract; keep in sync with SKILL.md. */
+  --background: var(
+    --color-background-primary,
+    light-dark(rgb(255 255 255), rgb(24 24 24))
+  );
+  --foreground: var(
+    --color-text-primary,
+    light-dark(rgb(26 28 31), rgb(255 255 255))
+  );
+  --card: color-mix(in oklab, var(--foreground) 5%, var(--background));
+  --card-foreground: var(
+    --color-text-primary,
+    light-dark(rgb(26 28 31), rgb(255 255 255))
+  );
+  --popover: var(
+    --color-background-secondary,
+    light-dark(rgb(255 255 255), rgb(45 45 45))
+  );
+  --popover-foreground: var(
+    --color-text-primary,
+    light-dark(rgb(26 28 31), rgb(255 255 255))
+  );
+  --primary: var(
+    --color-text-info,
+    light-dark(rgb(51 156 255), rgb(131 195 255))
+  );
+  --primary-foreground: var(
+    --color-text-inverse,
+    light-dark(rgb(255 255 255), rgb(13 13 13))
+  );
+  --secondary: var(
+    --color-background-secondary,
+    light-dark(rgb(255 255 255 / 96%), rgb(54 54 54 / 96%))
+  );
+  --secondary-foreground: var(
+    --color-text-primary,
+    light-dark(rgb(26 28 31), rgb(255 255 255))
+  );
+  --muted: color-mix(in srgb, var(--foreground) 10%, transparent);
+  --muted-foreground: var(
+    --color-text-secondary,
+    light-dark(rgb(26 28 31 / 49.4%), rgb(255 255 255 / 49.8%))
+  );
+  --accent: var(
+    --color-background-info,
+    light-dark(rgb(229 242 255), rgb(13 39 63))
+  );
+  --accent-foreground: var(
+    --color-text-info,
+    light-dark(rgb(51 156 255), rgb(131 195 255))
+  );
+  --destructive: var(
+    --color-text-warning,
+    light-dark(rgb(226 85 7), rgb(255 133 73))
+  );
+  --border: var(
+    --color-border-secondary,
+    light-dark(rgb(26 28 31 / 8%), rgb(255 255 255 / 8.2%))
+  );
+  --input: var(
+    --color-border-primary,
+    light-dark(
+      rgb(26 28 31 / 11.8%),
+      color-mix(in oklab, rgb(0 0 0) 10%, transparent)
+    )
+  );
+  --ring: var(
+    --color-ring-primary,
+    light-dark(rgb(51 156 255), rgb(131 195 255 / 76%))
+  );
+  --font-size-base: var(--font-text-md-size, 14px);
+  --blue: light-dark(rgb(51 156 255), rgb(51 156 255));
+  --orange: light-dark(rgb(226 85 7), rgb(251 106 34));
+  --green: light-dark(rgb(0 162 64), rgb(64 201 119));
+  --red: light-dark(rgb(224 46 42), rgb(255 103 100));
+  --purple: light-dark(rgb(146 79 247), rgb(173 123 249));
+  --yellow: light-dark(rgb(255 195 0), rgb(255 210 64));
+  --viz-series-1: var(--primary);
+  --viz-series-2: light-dark(rgb(243 136 59), rgb(245 154 86));
+  --viz-series-3: light-dark(rgb(93 201 119), rgb(116 213 139));
+  --viz-series-4: light-dark(rgb(235 119 177), rgb(240 143 192));
+  --viz-series-5: light-dark(rgb(155 121 236), rgb(170 145 239));
+  --viz-series-6: light-dark(rgb(58 185 177), rgb(90 203 194));
+
+  /* Internal implementation variables; not part of the agent contract. */
+  --font-sans: -apple-system, system-ui, &quot;Segoe UI&quot;, sans-serif;
+  --font-mono:
+    ui-monospace, SFMono-Regular, &quot;SF Mono&quot;, Menlo, Consolas, &quot;Liberation Mono&quot;,
+    monospace;
+  --font-size-normal: max(11px, var(--font-size-base));
+  --font-size-tooltip: calc(var(--font-size-base) - 1px);
+  --font-size-small: max(11px, calc(var(--font-size-base) - 2px));
+  --font-size-h1: calc(var(--font-size-normal) * 1.7142857143);
+  --font-size-h2: calc(var(--font-size-normal) * 1.4285714286);
+  --font-size-h3: calc(var(--font-size-normal) * 1.2857142857);
+  --font-weight-normal: 430;
+  --font-weight-medium: 500;
+  --line-height-normal: calc(var(--font-size-normal) * 1.5);
+  --line-height-tooltip: calc(var(--font-size-tooltip) * 1.4285714286);
+  --line-height-small: calc(var(--font-size-small) + 4px);
+  --radius: var(--border-radius-lg, 12.5px);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-2xl: calc(var(--radius) * 1.6);
+  --radius-full: 9999px;
+  --shadow-sm: 0 1px 2px -1px rgb(0 0 0 / 8%);
+  --checkmark-image: url(&quot;data:image/svg+xml,%3Csvg xmlns=&#x27;http://www.w3.org/2000/svg&#x27; viewBox=&#x27;0 0 17 17&#x27;%3E%3Cpath d=&#x27;M12.8961 3.64101C13.1297 3.41418 13.4984 3.37523 13.7779 3.56581C14.0571 3.75635 14.1554 4.11331 14.0299 4.41347L13.9615 4.53847L7.71151 13.7045C7.59411 13.8767 7.4063 13.9877 7.19881 14.0072C6.99136 14.0267 6.78564 13.9533 6.63826 13.806L2.88826 10.056L2.79842 9.9457C2.6192 9.67407 2.64927 9.30496 2.88826 9.06581C3.12738 8.82669 3.49647 8.79676 3.76815 8.97597L3.8785 9.06581L7.03084 12.2182L12.8053 3.74941L12.8961 3.64101Z&#x27;/%3E%3C/svg%3E&quot;);
+
+  /* Legacy aliases; not part of the current agent contract. */
+  --viz-bg: transparent;
+  --viz-panel: var(--card);
+  --viz-border: var(--border);
+  --viz-text: var(--foreground);
+  --viz-muted: var(--muted-foreground);
+  --viz-accent: var(--primary);
+  --viz-accent-text: var(--primary-foreground);
+  --viz-accent-bg: var(--accent);
+  --viz-font-size: var(--font-size-base);
+  --viz-warning: var(--destructive);
+}
+
+:root[data-theme=&quot;light&quot;] {
+  color-scheme: light;
+}
+
+:root[data-theme=&quot;dark&quot;] {
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html &gt; body {
+  /* Preserve MCP aliases for older inline renderers without creating :root cycles. */
+  --color-background-primary: var(
+    --background,
+    light-dark(rgb(255 255 255), rgb(24 24 24))
+  );
+  --color-text-primary: var(
+    --foreground,
+    light-dark(rgb(26 28 31), rgb(255 255 255))
+  );
+  --color-border-secondary: var(
+    --border,
+    light-dark(rgb(26 28 31 / 8%), rgb(255 255 255 / 8.2%))
+  );
+
+  margin: 0;
+  padding: 5px;
+  color: var(--foreground);
+  background: transparent !important;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-normal);
+  font-weight: var(--font-weight-normal);
+  line-height: var(--line-height-normal);
+}
+
+a {
+  color: color-mix(in srgb, var(--viz-accent) 80%, var(--viz-text) 20%);
+  cursor: pointer;
+  font-weight: var(--font-weight-medium, 500);
+  text-decoration: none;
+  text-underline-offset: 2px;
+}
+
+a:is(:hover, :focus-visible) {
+  text-decoration-line: underline;
+  text-decoration-style: dashed;
+  text-decoration-thickness: 0.5px;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p {
+  margin-block: 0;
+}
+
+h1 {
+  font-size: var(--font-size-h1);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.25;
+}
+
+h2 {
+  font-size: var(--font-size-h2);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.25;
+}
+
+h3,
+h4,
+h5,
+h6 {
+  font-size: var(--font-size-h3);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.3;
+}
+
+b,
+strong,
+th {
+  font-weight: var(--font-weight-medium);
+}
+
+code:not(pre code) {
+  display: inline;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  corner-shape: superellipse(1.5);
+  background: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+  overflow-wrap: anywhere;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+  word-break: break-word;
+}
+
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  color: var(--foreground);
+  font: inherit;
+  text-align: start;
+}
+
+.table :is(th, td) {
+  padding-block: 10px;
+  padding-inline: 0 24px;
+  overflow-wrap: anywhere;
+  border-bottom: 1px solid var(--border);
+  text-align: start;
+  vertical-align: top;
+}
+
+.table-responsive &gt; .table :is(th, td) {
+  overflow-wrap: break-word;
+}
+
+.table :is(th, td):last-child {
+  padding-inline-end: 0;
+}
+
+.table :is(caption, thead th) {
+  font-weight: 600;
+}
+
+.table thead th {
+  padding-block: 8px;
+  border-bottom-color: color-mix(in srgb, var(--foreground) 16%, transparent);
+}
+
+.table tbody tr:last-child :is(th, td) {
+  border-bottom: 0;
+}
+
+.table.table-sm :is(th, td) {
+  padding-block: 6px;
+}
+
+.table.table-sm :is(th, td):not(:last-child) {
+  padding-inline-end: 16px;
+}
+
+.table :is(.text-end, [align=&quot;right&quot;]) {
+  text-align: end;
+  font-variant-numeric: tabular-nums;
+}
+
+.table :is(.text-center, [align=&quot;center&quot;]) {
+  text-align: center;
+}
+
+.table .text-nowrap {
+  white-space: nowrap;
+}
+
+#widget {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  padding: 0;
+  background: transparent !important;
+}
+
+.card {
+  min-width: 0;
+  padding: 12px;
+  overflow: hidden;
+  overflow-wrap: break-word;
+  border-radius: var(--radius-2xl);
+  corner-shape: superellipse(1.5);
+  color: var(--card-foreground);
+  background: var(--card);
+}
+
+#widget &gt; :not(.card) {
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.tooltip {
+  position: fixed;
+  z-index: 50;
+  top: 0;
+  left: 0;
+  width: max-content;
+  max-width: min(
+    20rem,
+    var(--tooltip-available-width, calc(100vw - 10px)),
+    calc(100vw - 10px)
+  );
+  max-height: min(
+    var(--tooltip-available-height, calc(100vh - 10px)),
+    calc(100vh - 10px)
+  );
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  corner-shape: superellipse(1.5);
+  color: var(--popover-foreground);
+  background: var(--popover);
+  box-shadow: none;
+  font-size: var(--font-size-tooltip);
+  line-height: var(--line-height-tooltip);
+  overflow-wrap: break-word;
+  white-space: normal;
+  pointer-events: none;
+  user-select: none;
+}
+
+.viz-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(max(180px, 24%), 1fr));
+  gap: 10px;
+}
+
+.viz-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.viz-stat-value {
+  font-size: var(--font-size-h2);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.25;
+}
+
+.viz-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.viz-badge {
+  padding: 3px 8px;
+  border-radius: var(--radius-full);
+  color: var(--accent-foreground);
+  background: var(--accent);
+  font-weight: var(--font-weight-medium);
+}
+
+small,
+.text-small,
+.viz-badge {
+  font-size: var(--font-size-small);
+  line-height: var(--line-height-small);
+}
+
+.text-muted {
+  color: var(--muted-foreground);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.viz-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.viz-controls &gt; .form-label {
+  display: grid;
+  min-width: min(100%, 260px);
+  flex: 1 1 280px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 2px 12px;
+  margin-bottom: 0;
+}
+
+.viz-controls &gt; .form-label &gt; :is(.form-control, .form-range, .form-select) {
+  grid-column: 1 / -1;
+}
+
+.btn,
+.form-check-input,
+.form-control,
+.form-range,
+.form-select {
+  font: inherit;
+}
+
+.btn {
+  appearance: button;
+  display: inline-flex;
+  inline-size: fit-content;
+  max-inline-size: 100%;
+  min-height: 28px;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  margin: 0;
+  padding: 0 8px;
+  -webkit-app-region: no-drag;
+  border: 1px solid var(--input);
+  border-radius: var(--radius-lg);
+  corner-shape: superellipse(1.5);
+  color: var(--secondary-foreground);
+  background: var(--secondary);
+  cursor: var(--cursor-interaction, pointer);
+  text-align: center;
+  text-decoration: none;
+  white-space: nowrap;
+  user-select: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+.btn:is(.btn-block, .viz-tile) {
+  inline-size: 100%;
+}
+
+.btn.viz-tile {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+a.btn {
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.btn:not(:disabled):hover {
+  background: color-mix(in srgb, var(--foreground) 6%, var(--secondary));
+}
+
+.btn-primary {
+  border-color: transparent;
+  color: var(--primary-foreground);
+  background: var(--foreground);
+  background-clip: padding-box;
+}
+
+.btn-primary .text-muted {
+  color: color-mix(in srgb, var(--primary-foreground) 50%, transparent);
+}
+
+.btn-primary:not(:disabled):hover {
+  background: color-mix(in srgb, var(--foreground) 80%, transparent);
+  background-clip: padding-box;
+}
+
+.btn-ghost {
+  border-color: transparent;
+  color: var(--muted-foreground);
+  background: transparent;
+}
+
+.btn-ghost:not(:disabled):hover {
+  color: var(--foreground);
+  background: color-mix(in srgb, var(--foreground) 6%, var(--secondary));
+}
+
+.btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+[data-lucide] {
+  stroke-width: 1.6;
+}
+
+.form-label {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--foreground);
+}
+
+.form-control {
+  display: block;
+  width: 100%;
+  min-height: 28px;
+  padding: 0 8px;
+  outline: none;
+  border: 1px solid var(--input);
+  border-radius: var(--radius-lg);
+  corner-shape: superellipse(1.5);
+  color: var(--foreground);
+  background: var(--secondary);
+}
+
+.form-control::placeholder {
+  color: var(--muted-foreground);
+}
+
+.form-control[type=&quot;file&quot;] {
+  padding: 0;
+  overflow: hidden;
+  cursor: var(--cursor-interaction, pointer);
+}
+
+.form-control[type=&quot;file&quot;]::file-selector-button {
+  min-height: 26px;
+  margin-right: 8px;
+  padding: 0 8px;
+  border: 0;
+  border-right: 1px solid var(--input);
+  color: var(--secondary-foreground);
+  background: var(--secondary);
+  cursor: inherit;
+  font: inherit;
+}
+
+.form-control[type=&quot;file&quot;]:not(:disabled):hover::file-selector-button {
+  background: color-mix(in srgb, var(--foreground) 6%, var(--secondary));
+}
+
+.form-control-color[type=&quot;color&quot;] {
+  width: 40px;
+  height: 28px;
+  padding: 3px;
+  cursor: var(--cursor-interaction, pointer);
+}
+
+.form-control-color[type=&quot;color&quot;]::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.form-control-color[type=&quot;color&quot;]::-webkit-color-swatch {
+  border: 0;
+  border-radius: calc(var(--radius-lg) - 4px);
+  corner-shape: superellipse(1.5);
+}
+
+textarea.form-control {
+  height: auto;
+  min-height: 72px;
+  padding: 8px 10px;
+  resize: vertical;
+}
+
+.form-control:focus-visible {
+  border-color: var(--ring);
+  box-shadow: inset 0 0 0 1px var(--ring);
+}
+
+.form-control:disabled,
+.form-select:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.form-select {
+  appearance: none;
+  display: block;
+  width: 100%;
+  min-height: 28px;
+  margin: 0;
+  padding: 0 32px 0 8px;
+  outline: none;
+  border: 1px solid var(--input);
+  border-radius: var(--radius-lg);
+  corner-shape: superellipse(1.5);
+  color: var(--foreground);
+  background-color: var(--secondary);
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--muted-foreground) 50%),
+    linear-gradient(135deg, var(--muted-foreground) 50%, transparent 50%);
+  background-position:
+    calc(100% - 14px) 50%,
+    calc(100% - 10px) 50%;
+  background-repeat: no-repeat;
+  background-size: 4px 4px;
+  cursor: var(--cursor-interaction, default);
+}
+
+.form-select:not(:disabled):hover {
+  background-color: color-mix(in srgb, var(--foreground) 6%, var(--secondary));
+}
+
+.form-select:focus-visible {
+  border-color: var(--ring);
+  box-shadow: inset 0 0 0 1px var(--ring);
+}
+
+.form-check {
+  display: flex;
+  min-height: 20px;
+  align-items: center;
+  gap: 6px;
+}
+
+.form-check-input {
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+  margin: 0;
+  border: 1px solid var(--input);
+  color: var(--primary-foreground);
+  background-color: transparent;
+  cursor: var(--cursor-interaction, default);
+  transition:
+    background-color 150ms,
+    border-color 150ms,
+    box-shadow 150ms;
+}
+
+.form-check:not(.form-switch) .form-check-input[type=&quot;checkbox&quot;] {
+  border-color: var(--input);
+  border-radius: var(--radius-sm);
+  corner-shape: superellipse(1.5);
+  background-color: var(--secondary);
+  box-shadow: var(--shadow-sm);
+}
+
+.form-check:not(.form-switch)
+  .form-check-input:not(:disabled):not(:checked):hover {
+  background-color: var(--card);
+}
+
+.form-check:not(.form-switch) .form-check-input[type=&quot;checkbox&quot;]:checked {
+  border-color: var(--primary);
+  background-color: var(--primary);
+}
+
+.form-check:not(.form-switch)
+  .form-check-input[type=&quot;checkbox&quot;]:checked::before {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--primary-foreground);
+  content: &quot;&quot;;
+  mask: var(--checkmark-image) center / 12px 12px no-repeat;
+}
+
+.form-check-input[type=&quot;radio&quot;] {
+  width: 14px;
+  height: 14px;
+  border-radius: var(--radius-full);
+}
+
+.form-check-input[type=&quot;radio&quot;]:checked {
+  border: 2px solid var(--primary);
+  background:
+    radial-gradient(circle, var(--primary-foreground) 0 2.5px, transparent 3px),
+    var(--primary);
+}
+
+.form-check:not(.form-switch) .form-check-input:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.form-check:not(.form-switch) .form-check-input:disabled {
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.form-check:not(.form-switch) .form-check-input:disabled + .form-check-label {
+  cursor: not-allowed;
+}
+
+.form-switch .form-check-input:disabled,
+.form-switch .form-check-input:disabled + .form-check-label {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.form-check-label {
+  color: var(--foreground);
+  cursor: var(--cursor-interaction, default);
+}
+
+.form-switch .form-check-input {
+  position: relative;
+  width: 32px;
+  height: 20px;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: var(--muted);
+  box-shadow: none;
+  transition: background-color 200ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.form-switch .form-check-input::before {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 16px;
+  height: 16px;
+  box-sizing: border-box;
+  border: 1px solid light-dark(var(--primary-foreground), var(--foreground));
+  border-radius: var(--radius-full);
+  background: light-dark(var(--primary-foreground), var(--foreground));
+  box-shadow: var(--shadow-sm);
+  content: &quot;&quot;;
+  transform: translate(2px, -50%);
+  transition: transform 200ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.form-switch .form-check-input:checked {
+  background: var(--primary);
+}
+
+.form-switch .form-check-input:checked::before {
+  transform: translate(14px, -50%);
+}
+
+.form-switch .form-check-input:focus-visible {
+  box-shadow: 0 0 0 2px var(--ring);
+}
+
+.form-range {
+  appearance: none;
+  display: block;
+  width: 100%;
+  height: 28px;
+  flex: 1;
+  margin: 0;
+  padding: 0;
+  outline: none;
+  border: 0;
+  accent-color: var(--primary);
+  background: linear-gradient(
+      color-mix(in srgb, var(--foreground) 7%, transparent),
+      color-mix(in srgb, var(--foreground) 7%, transparent)
+    )
+    center / 100% 2px no-repeat;
+}
+
+.form-range::-webkit-slider-runnable-track {
+  height: 28px;
+  background: transparent;
+}
+
+.form-range::-webkit-slider-thumb {
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  margin-top: 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  background: light-dark(var(--primary-foreground), var(--foreground));
+}
+
+.form-range:focus-visible::-webkit-slider-thumb {
+  border-color: var(--ring);
+  box-shadow: inset 0 0 0 1px var(--ring);
+}
+
+.form-range::-moz-range-track {
+  height: 28px;
+  background: transparent;
+}
+
+.form-range::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  background: light-dark(var(--primary-foreground), var(--foreground));
+}
+
+.form-range:focus-visible::-moz-range-thumb {
+  border-color: var(--ring);
+  box-shadow: inset 0 0 0 1px var(--ring);
+}
+
+.form-range:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.btn:not(.btn-primary, .viz-tile):is(
+    [aria-pressed=&quot;true&quot;],
+    [aria-selected=&quot;true&quot;],
+    .is-selected
+  ) {
+  border-color: var(--primary);
+  color: var(--primary-foreground);
+  background: var(--primary);
+}
+
+.btn.viz-tile:is([aria-pressed=&quot;true&quot;], [aria-selected=&quot;true&quot;], .is-selected) {
+  border-color: var(--primary);
+  box-shadow: inset 0 0 0 1px var(--primary);
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+#widget &gt; svg {
+  width: 100%;
+}
+
+/* Model-authored chart rules can otherwise stretch icons after these styles load. */
+svg.lucide {
+  display: block;
+  width: 16px !important;
+  height: 16px !important;
+  flex: none;
+  margin: 0 !important;
+  stroke-width: 1.6;
+}
+
+.text-warning,
+.text-destructive {
+  color: var(--destructive);
+}
+
+html&gt;body{padding:0}&lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;div id=&quot;tutu-okno-prototype&quot;&gt;
+  &lt;style&gt;
+    #tutu-okno-prototype {
+      --tutu-ink: #0d0b68;
+      --tutu-ink-soft: #5f687d;
+      --tutu-purple: #6f5df6;
+      --tutu-purple-dark: #5545ca;
+      --tutu-purple-soft: #eeeaff;
+      --tutu-yellow: #d1ff1a;
+      --tutu-yellow-soft: #f3ffc4;
+      --tutu-lime: #b9ef54;
+      --tutu-cyan: #6dd8df;
+      --tutu-coral: #ff776d;
+      --tutu-coral-soft: #fff0ee;
+      --tutu-green: #168568;
+      --tutu-green-soft: #e3f7ef;
+      --tutu-amber: #a96600;
+      --tutu-amber-soft: #fff1d8;
+      --tutu-surface: #ffffff;
+      --tutu-page: #f2f3f7;
+      --tutu-line: #dfe2ea;
+      --tutu-shadow: 0 18px 54px rgba(24, 31, 58, 0.18);
+      width: 100%;
+      color: var(--tutu-ink);
+      font-family: Inter, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;
+    }
+
+    #tutu-okno-prototype * {
+      box-sizing: border-box;
+    }
+
+    #tutu-okno-prototype button,
+    #tutu-okno-prototype input {
+      font: inherit;
+    }
+
+    #tutu-okno-prototype button {
+      cursor: pointer;
+    }
+
+    #tutu-okno-prototype .tutu-prototype-switcher {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 7px;
+      margin: 0 auto 14px;
+      max-width: 720px;
+    }
+
+    #tutu-okno-prototype .tutu-prototype-switcher button {
+      min-height: 34px;
+      padding: 7px 11px;
+      border: 1px solid color-mix(in srgb, var(--tutu-ink) 16%, transparent);
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--tutu-surface) 94%, transparent);
+      color: var(--tutu-ink);
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    #tutu-okno-prototype .tutu-prototype-switcher button[aria-selected=&quot;true&quot;] {
+      border-color: var(--tutu-ink);
+      background: var(--tutu-yellow);
+      color: var(--tutu-ink);
+    }
+
+    #tutu-okno-prototype .tutu-device {
+      width: min(390px, 100%);
+      margin: 0 auto;
+      overflow: hidden;
+      border: 7px solid #10162a;
+      border-radius: 38px;
+      background: var(--tutu-page);
+      box-shadow: var(--tutu-shadow);
+    }
+
+    #tutu-okno-prototype .tutu-statusbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 30px;
+      padding: 0 16px;
+      background: var(--tutu-surface);
+      color: var(--tutu-ink);
+      font-size: 11px;
+      font-weight: 500;
+    }
+
+    #tutu-okno-prototype .tutu-status-icons {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    #tutu-okno-prototype .tutu-status-icons svg {
+      width: 13px;
+      height: 13px;
+    }
+
+    #tutu-okno-prototype .tutu-screen {
+      position: relative;
+      display: none;
+      min-height: 704px;
+      overflow: hidden;
+      background: var(--tutu-page);
+    }
+
+    #tutu-okno-prototype .tutu-screen.is-active {
+      display: block;
+    }
+
+    #tutu-okno-prototype .tutu-appbar,
+    #tutu-okno-prototype .tutu-pagebar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 64px;
+      padding: 10px 14px;
+      background: var(--tutu-surface);
+    }
+
+    #tutu-okno-prototype .tutu-trip-button,
+    #tutu-okno-prototype .tutu-icon-button,
+    #tutu-okno-prototype .tutu-avatar-button,
+    #tutu-okno-prototype .tutu-back {
+      border: 0;
+      background: transparent;
+      color: inherit;
+    }
+
+    #tutu-okno-prototype .tutu-trip-button {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      min-width: 0;
+      padding: 0;
+      text-align: left;
+    }
+
+    #tutu-okno-prototype .tutu-wordmark {
+      display: inline-flex;
+      align-items: center;
+      flex: 0 0 auto;
+      letter-spacing: -2px;
+      font-size: 21px;
+      font-weight: 500;
+    }
+
+    #tutu-okno-prototype .tutu-wordmark-first {
+      color: var(--tutu-ink);
+    }
+
+    #tutu-okno-prototype .tutu-wordmark-second {
+      display: inline-block;
+      color: var(--tutu-purple);
+      transform: skewX(-8deg) translateX(2px);
+    }
+
+    #tutu-okno-prototype .tutu-trip-copy {
+      display: grid;
+      gap: 2px;
+      min-width: 0;
+    }
+
+    #tutu-okno-prototype .tutu-trip-copy strong,
+    #tutu-okno-prototype .tutu-title-row strong {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 15px;
+      font-weight: 500;
+    }
+
+    #tutu-okno-prototype .tutu-trip-copy small,
+    #tutu-okno-prototype .tutu-page-subtitle {
+      color: var(--tutu-ink-soft);
+      font-size: 11px;
+    }
+
+    #tutu-okno-prototype .tutu-avatar-button,
+    #tutu-okno-prototype .tutu-avatar {
+      display: inline-grid;
+      place-items: center;
+      width: 38px;
+      height: 38px;
+      flex: 0 0 auto;
+      border-radius: 50%;
+      background: var(--tutu-purple);
+      color: var(--tutu-surface);
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    #tutu-okno-prototype .tutu-avatar.tutu-avatar-purple {
+      background: var(--tutu-purple);
+      color: var(--tutu-surface);
+    }
+
+    #tutu-okno-prototype .tutu-avatar.tutu-avatar-cyan {
+      background: var(--tutu-cyan);
+    }
+
+    #tutu-okno-prototype .tutu-avatar.tutu-avatar-lime {
+      background: var(--tutu-lime);
+    }
+
+    #tutu-okno-prototype .tutu-toolbar {
+      padding: 10px 12px 9px;
+      border-top: 1px solid var(--tutu-line);
+      border-bottom: 1px solid var(--tutu-line);
+      background: var(--tutu-surface);
+    }
+
+    #tutu-okno-prototype .tutu-toolbar-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    #tutu-okno-prototype .tutu-chips {
+      display: flex;
+      min-width: 0;
+      gap: 6px;
+    }
+
+    #tutu-okno-prototype .tutu-chip,
+    #tutu-okno-prototype .tutu-filter-chip {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      min-height: 30px;
+      padding: 6px 9px;
+      border: 1px solid var(--tutu-line);
+      border-radius: 999px;
+      background: var(--tutu-surface);
+      color: var(--tutu-ink);
+      font-size: 11px;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+
+    #tutu-okno-prototype .tutu-chip.is-selected,
+    #tutu-okno-prototype .tutu-filter-chip.is-selected {
+      border-color: var(--tutu-purple);
+      background: var(--tutu-purple-soft);
+      color: var(--tutu-purple-dark);
+    }
+
+    #tutu-okno-prototype .tutu-check-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      min-height: 32px;
+      padding: 7px 10px;
+      border: 0;
+      border-radius: 10px 10px 10px 4px;
+      background: var(--tutu-yellow);
+      color: var(--tutu-ink);
+      font-size: 11px;
+      font-weight: 500;
+      white-space: nowrap;
+      transform: skewX(-2deg);
+    }
+
+    #tutu-okno-prototype .tutu-check-button span,
+    #tutu-okno-prototype .tutu-check-button svg {
+      transform: skewX(2deg);
+    }
+
+    #tutu-okno-prototype .tutu-check-button[aria-busy=&quot;true&quot;] svg {
+      animation: tutu-spin 800ms linear infinite;
+    }
+
+    @keyframes tutu-spin {
+      to { transform: skewX(2deg) rotate(360deg); }
+    }
+
+    #tutu-okno-prototype .tutu-week-header {
+      display: grid;
+      grid-template-columns: 30px repeat(7, minmax(0, 1fr));
+      height: 46px;
+      border-bottom: 1px solid var(--tutu-line);
+      background: var(--tutu-surface);
+    }
+
+    #tutu-okno-prototype .tutu-day-head {
+      display: grid;
+      place-items: center;
+      align-content: center;
+      gap: 1px;
+      border-left: 1px solid var(--tutu-line);
+      font-size: 11px;
+      color: var(--tutu-ink-soft);
+    }
+
+    #tutu-okno-prototype .tutu-day-head strong {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--tutu-ink);
+    }
+
+    #tutu-okno-prototype .tutu-day-head.is-current strong {
+      display: grid;
+      place-items: center;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: var(--tutu-purple);
+      color: var(--tutu-surface);
+    }
+
+    #tutu-okno-prototype .tutu-calendar-grid {
+      position: relative;
+      height: 472px;
+      background: var(--tutu-surface);
+    }
+
+    #tutu-okno-prototype .tutu-calendar-grid::before {
+      position: absolute;
+      inset: 0 0 0 30px;
+      content: &quot;&quot;;
+      background-image:
+        repeating-linear-gradient(to bottom, transparent 0, transparent 35px, var(--tutu-line) 36px),
+        repeating-linear-gradient(to right, transparent 0, transparent calc((100% / 7) - 1px), var(--tutu-line) calc(100% / 7));
+      pointer-events: none;
+    }
+
+    #tutu-okno-prototype .tutu-time-label {
+      position: absolute;
+      left: 4px;
+      color: var(--tutu-ink-soft);
+      font-size: 11px;
+      transform: translateY(-7px);
+    }
+
+    #tutu-okno-prototype .tutu-time-09 { top: 8px; }
+    #tutu-okno-prototype .tutu-time-12 { top: 116px; }
+    #tutu-okno-prototype .tutu-time-15 { top: 224px; }
+    #tutu-okno-prototype .tutu-time-18 { top: 332px; }
+    #tutu-okno-prototype .tutu-time-21 { top: 440px; }
+
+    #tutu-okno-prototype .tutu-calendar-event {
+      position: absolute;
+      z-index: 2;
+      left: calc(30px + ((100% - 30px) / 7 * var(--tutu-column)) + 2px);
+      top: var(--tutu-top);
+      width: calc(((100% - 30px) / 7) - 4px);
+      height: var(--tutu-height);
+      overflow: hidden;
+      padding: 5px 4px;
+      border: 1px solid transparent;
+      border-radius: 7px 7px 7px 3px;
+      text-align: left;
+      font-size: 11px;
+      line-height: 1.17;
+      font-weight: 500;
+    }
+
+    #tutu-okno-prototype .tutu-calendar-event small {
+      display: block;
+      margin-top: 2px;
+      font-size: 11px;
+      font-weight: 400;
+      opacity: 0.82;
+    }
+
+    #tutu-okno-prototype .tutu-event-confirmed {
+      background: var(--tutu-purple);
+      color: var(--tutu-surface);
+    }
+
+    #tutu-okno-prototype .tutu-event-ticket {
+      border-top: 4px solid var(--tutu-yellow);
+      background: var(--tutu-ink);
+      color: var(--tutu-surface);
+    }
+
+    #tutu-okno-prototype .tutu-event-soft {
+      border-color: color-mix(in srgb, var(--tutu-cyan) 80%, var(--tutu-ink));
+      background: color-mix(in srgb, var(--tutu-cyan) 34%, var(--tutu-surface));
+      color: var(--tutu-ink);
+    }
+
+    #tutu-okno-prototype .tutu-event-gap {
+      border: 1px solid color-mix(in srgb, var(--tutu-purple) 55%, var(--tutu-line));
+      background: color-mix(in srgb, var(--tutu-purple) 11%, var(--tutu-surface));
+      color: var(--tutu-purple-dark);
+      box-shadow: inset 3px 0 0 var(--tutu-purple);
+    }
+
+    #tutu-okno-prototype .tutu-event-vote {
+      border: 1.5px dashed var(--tutu-amber);
+      background: var(--tutu-yellow-soft);
+      color: #6b4500;
+    }
+
+    #tutu-okno-prototype .tutu-event-vote.tutu-event-conflict {
+      border: 1.5px solid var(--tutu-coral);
+      background: var(--tutu-coral-soft);
+      color: #9b302b;
+    }
+
+    #tutu-okno-prototype .tutu-bottom-nav {
+      position: absolute;
+      z-index: 8;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      align-items: end;
+      height: 76px;
+      padding: 7px 24px 10px;
+      border-top: 1px solid var(--tutu-line);
+      background: color-mix(in srgb, var(--tutu-surface) 96%, transparent);
+    }
+
+    #tutu-okno-prototype .tutu-nav-item {
+      display: grid;
+      place-items: center;
+      gap: 3px;
+      min-height: 52px;
+      border: 0;
+      background: transparent;
+      color: var(--tutu-ink-soft);
+      font-size: 11px;
+    }
+
+    #tutu-okno-prototype .tutu-nav-item.is-active {
+      color: var(--tutu-purple);
+    }
+
+    #tutu-okno-prototype .tutu-nav-item svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    #tutu-okno-prototype .tutu-calendar-fab {
+      display: grid;
+      place-items: center;
+      align-content: start;
+      gap: 3px;
+      min-height: 66px;
+      margin: -18px auto 0;
+      border: 0;
+      background: transparent;
+      color: var(--tutu-purple);
+      font-size: 11px;
+      font-weight: 500;
+    }
+
+    #tutu-okno-prototype .tutu-calendar-fab-icon {
+      display: grid;
+      place-items: center;
+      width: 54px;
+      height: 54px;
+      border-radius: 18px 18px 18px 7px;
+      background: var(--tutu-purple);
+      color: var(--tutu-surface);
+      box-shadow: 0 8px 20px rgba(23, 33, 59, 0.2);
+      transform: rotate(-3deg);
+    }
+
+    #tutu-okno-prototype .tutu-calendar-fab-icon svg {
+      width: 25px;
+      height: 25px;
+      transform: rotate(3deg);
+    }
+
+    #tutu-okno-prototype .tutu-scan-overlay {
+      position: absolute;
+      z-index: 7;
+      top: 116px;
+      right: 0;
+      left: 0;
+      height: 518px;
+      overflow: hidden;
+      pointer-events: none;
+      visibility: hidden;
+    }
+
+    #tutu-okno-prototype .tutu-scan-overlay::before {
+      position: absolute;
+      top: -82px;
+      right: 0;
+      left: 30px;
+      height: 82px;
+      content: &quot;&quot;;
+      border-bottom: 2px solid var(--tutu-yellow);
+      background: linear-gradient(to bottom, transparent, color-mix(in srgb, var(--tutu-yellow) 26%, transparent));
+    }
+
+    #tutu-okno-prototype .tutu-scan-overlay.is-scanning {
+      visibility: visible;
+    }
+
+    #tutu-okno-prototype .tutu-scan-overlay.is-scanning::before {
+      animation: tutu-calendar-scan 480ms ease-in-out 1;
+    }
+
+    @keyframes tutu-calendar-scan {
+      from { transform: translateY(0); }
+      to { transform: translateY(600px); }
+    }
+
+    #tutu-okno-prototype .tutu-pagebar {
+      justify-content: flex-start;
+      gap: 10px;
+      border-bottom: 1px solid var(--tutu-line);
+    }
+
+    #tutu-okno-prototype .tutu-back {
+      display: grid;
+      place-items: center;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+    }
+
+    #tutu-okno-prototype .tutu-title-row {
+      display: grid;
+      gap: 2px;
+      min-width: 0;
+    }
+
+    #tutu-okno-prototype .tutu-page-content {
+      padding: 14px;
+    }
+
+    #tutu-okno-prototype .tutu-context-card,
+    #tutu-okno-prototype .tutu-panel,
+    #tutu-okno-prototype .tutu-choice-card,
+    #tutu-okno-prototype .tutu-option-card,
+    #tutu-okno-prototype .tutu-result-card,
+    #tutu-okno-prototype .tutu-trip-card {
+      border: 1px solid var(--tutu-line);
+      border-radius: 16px 16px 16px 6px;
+      background: var(--tutu-surface);
+    }
+
+    #tutu-okno-prototype .tutu-context-card {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 11px 12px;
+      border-color: color-mix(in srgb, var(--tutu-purple) 30%, var(--tutu-line));
+      background: var(--tutu-purple-soft);
+    }
+
+    #tutu-okno-prototype .tutu-context-icon,
+    #tutu-okno-prototype .tutu-choice-icon,
+    #tutu-okno-prototype .tutu-state-icon {
+      display: grid;
+      place-items: center;
+      width: 40px;
+      height: 40px;
+      flex: 0 0 auto;
+      border-radius: 13px 13px 13px 5px;
+      background: var(--tutu-purple);
+      color: var(--tutu-surface);
+      transform: rotate(-3deg);
+    }
+
+    #tutu-okno-prototype .tutu-context-icon svg,
+    #tutu-okno-prototype .tutu-choice-icon svg,
+    #tutu-okno-prototype .tutu-state-icon svg {
+      transform: rotate(3deg);
+    }
+
+    #tutu-okno-prototype .tutu-context-copy,
+    #tutu-okno-prototype .tutu-choice-copy {
+      display: grid;
+      gap: 3px;
+      min-width: 0;
+    }
+
+    #tutu-okno-prototype .tutu-context-copy strong,
+    #tutu-okno-prototype .tutu-choice-copy strong,
+    #tutu-okno-prototype .tutu-section-title {
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    #tutu-okno-prototype .tutu-context-copy span,
+    #tutu-okno-prototype .tutu-choice-copy span,
+    #tutu-okno-prototype .tutu-helper,
+    #tutu-okno-prototype .tutu-meta {
+      color: var(--tutu-ink-soft);
+      font-size: 11px;
+      line-height: 1.35;
+    }
+
+    #tutu-okno-prototype .tutu-screen-heading {
+      margin: 18px 0 10px;
+      font-size: 21px;
+      line-height: 1.15;
+      font-weight: 500;
+    }
+
+    #tutu-okno-prototype .tutu-choice-stack {
+      display: grid;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    #tutu-okno-prototype .tutu-choice-card {
+      display: grid;
+      grid-template-columns: 44px 1fr 22px;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      padding: 14px;
+      color: var(--tutu-ink);
+      text-align: left;
+    }
+
+    #tutu-okno-prototype .tutu-choice-card.tutu-choice-yellow .tutu-choice-icon {
+      background: var(--tutu-yellow);
+      color: var(--tutu-ink);
+    }
+
+    #tutu-okno-prototype .tutu-choice-card.tutu-choice-cyan .tutu-choice-icon {
+      background: var(--tutu-cyan);
+      color: var(--tutu-ink);
+    }
+
+    #tutu-okno-prototype .tutu-inline-note {
+      display: flex;
+      gap: 8px;
+      margin-top: 14px;
+      padding: 10px 2px;
+      color: var(--tutu-ink-soft);
+      font-size: 11px;
+      line-height: 1.35;
+    }
+
+    #tutu-okno-prototype .tutu-form-stack {
+      display: grid;
+      gap: 10px;
+    }
+
+    #tutu-okno-prototype .tutu-field {
+      display: grid;
+      gap: 5px;
+    }
+
+    #tutu-okno-prototype .tutu-field label,
+    #tutu-okno-prototype .tutu-control-label {
+      color: var(--tutu-ink-soft);
+      font-size: 11px;
+      font-weight: 500;
+    }
+
+    #tutu-okno-prototype .tutu-field &gt; input,
+    #tutu-okno-prototype .tutu-field-surface {
+      width: 100%;
+      min-height: 43px;
+      padding: 11px 12px;
+      border: 1px solid var(--tutu-line);
+      border-radius: 12px 12px 12px 5px;
+      background: var(--tutu-surface);
+      color: var(--tutu-ink);
+      font-size: 12px;
+    }
+
+    #tutu-okno-prototype .tutu-segmented {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px;
+      padding: 4px;
+      border-radius: 13px;
+      background: #e8eaf0;
+    }
+
+    #tutu-okno-prototype .tutu-segmented button {
+      min-height: 36px;
+      border: 0;
+      border-radius: 10px 10px 10px 4px;
+      background: transparent;
+      color: var(--tutu-ink-soft);
+      font-size: 11px;
+      font-weight: 500;
+    }
+
+    #tutu-okno-prototype .tutu-segmented button.is-selected {
+      background: var(--tutu-surface);
+      color: var(--tutu-ink);
+      box-shadow: 0 2px 8px rgba(23, 33, 59, 0.08);
+    }
+
+    #tutu-okno-prototype .tutu-participant-field {
+      position: relative;
+      z-index: 6;
+    }
+
+    #tutu-okno-prototype .tutu-participant-picker {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 7px;
+    }
+
+    #tutu-okno-prototype .tutu-participant-trigger {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      min-width: 0;
+      min-height: 43px;
+      padding: 9px 11px;
+      border: 1px solid var(--tutu-line);
+      border-radius: 12px 12px 12px 5px;
+      background: var(--tutu-surface);
+      color: var(--tutu-ink);
+      font-size: 11px;
+      font-weight: 500;
+      text-align: left;
+    }
+
+    #tutu-okno-prototype .tutu-participant-trigger &gt; span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    #tutu-okno-prototype .tutu-only-me {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 43px;
+      padding: 9px 10px;
+      border: 1px solid var(--tutu-line);
+      border-radius: 12px 12px 12px 5px;
+      background: var(--tutu-surface);
+      color: var(--tutu-ink);
+      font-size: 11px;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+
+    #tutu-okno-prototype .tutu-only-me.is-selected {
+      border-color: var(--tutu-purple);
+      background: var(--tutu-purple-soft);
+      color: var(--tutu-purple-dark);
+    }
+
+    #tutu-okno-prototype .tutu-only-me input,
+    #tutu-okno-prototype .tutu-participant-option input {
+      accent-color: var(--tutu-purple);
+    }
+
+    #tutu-okno-prototype .tutu-participant-menu {
+      position: absolute;
+      z-index: 12;
+      top: calc(100% + 5px);
+      right: 0;
+      left: 0;
+      display: none;
+      padding: 6px;
+      border: 1px solid var(--tutu-line);
+      border-radius: 14px 14px 14px 5px;
+      background: var(--tutu-surface);
+      box-shadow: 0 12px 30px rgba(23, 33, 59, 0.16);
+    }
+
+    #tutu-okno-prototype .tutu-participant-menu.is-open {
+      display: grid;
+    }
+
+    #tutu-okno-prototype .tutu-participant-option {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 37px;
+      padding: 6px 7px;
+      border-radius: 9px;
+      color: var(--tutu-ink);
+      font-size: 11px;
+    }
+
+    #tutu-okno-prototype .tutu-participant-option:hover {
+      background: var(--tutu-purple-soft);
+    }
+
+    #tutu-okno-prototype .tutu-status-strip {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      padding: 10px 11px;
+      border-radius: 12px 12px 12px 5px;
+      background: var(--tutu-green-soft);
+      color: #0d604b;
+      font-size: 11px;
+      line-height: 1.35;
+    }
+
+    #tutu-okno-prototype .tutu-status-strip.tutu-status-warning {
+      background: var(--tutu-amber-soft);
+      color: #754900;
+    }
+
+    #tutu-okno-prototype .tutu-primary,
+    #tutu-okno-prototype .tutu-secondary,
+    #tutu-okno-prototype .tutu-danger-action {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      min-height: 46px;
+      padding: 11px 15px;
+      border-radius: 13px 13px 13px 5px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    #tutu-okno-prototype .tutu-primary {
+      border: 0;
+      background: var(--tutu-purple);
+      color: var(--tutu-surface);
+    }
+
+    #tutu-okno-prototype .tutu-primary:disabled {
+      background: #b9b5cd;
+      cursor: default;
+    }
+
+    #tutu-okno-prototype .tutu-secondary {
+      border: 1px solid var(--tutu-line);
+      background: var(--tutu-surface);
+      color: var(--tutu-ink);
+    }
+
+    #tutu-okno-prototype .tutu-danger-action {
+      border: 1px solid var(--tutu-coral);
+      background: var(--tutu-coral-soft);
+      color: #a32e28;
+    }
+
+    #tutu-okno-prototype .tutu-block {
+      width: 100%;
+    }
+
+    #tutu-okno-prototype .tutu-link-button {
+      padding: 6px 0;
+      border: 0;
+      background: transparent;
+      color: var(--tutu-purple-dark);
+      font-size: 11px;
+      font-weight: 500;
+      text-align: left;
+    }
+
+    #tutu-okno-prototype .tutu-option-list,
+    #tutu-okno-prototype .tutu-result-list,
+    #tutu-okno-prototype .tutu-audit-list {
+      display: grid;
+      gap: 9px;
+      margin-top: 10px;
+    }
+
+    #tutu-okno-prototype .tutu-option-card {
+      position: relative;
+      padding: 11px;
+    }
+
+    #tutu-okno-prototype .tutu-option-card.is-selected {
+      border-color: var(--tutu-purple);
+      box-shadow: 0 0 0 2px color-mix(in srgb, var(--tutu-purple) 18%, transparent);
+    }
+
+    #tutu-okno-prototype .tutu-option-card.is-conflict {
+      border-color: var(--tutu-coral);
+      background: var(--tutu-coral-soft);
+    }
+
+    #tutu-okno-prototype .tutu-option-top,
+    #tutu-okno-prototype .tutu-option-footer,
+    #tutu-okno-prototype .tutu-summary-row,
+    #tutu-okno-prototype .tutu-audit-item,
+    #tutu-okno-prototype .tutu-trip-row,
+    #tutu-okno-prototype .tutu-memory-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    #tutu-okno-prototype .tutu-option-title {
+      display: grid;
+      gap: 2px;
+      min-width: 0;
+    }
+
+    #tutu-okno-prototype .tutu-option-title strong {
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    #tutu-okno-prototype .tutu-price {
+      font-size: 12px;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+
+    #tutu-okno-prototype .tutu-option-metrics {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px 9px;
+      margin-top: 7px;
+      color: var(--tutu-ink-soft);
+      font-size: 11px;
+    }
+
+    #tutu-okno-prototype .tutu-option-metrics span {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    #tutu-okno-prototype .tutu-option-footer {
+      margin-top: 8px;
+    }
+
+    #tutu-okno-prototype .tutu-availability {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      color: var(--tutu-green);
+      font-size: 11px;
+      font-weight: 500;
+    }
+
+    #tutu-okno-prototype .tutu-availability.is-warning {
+      color: var(--tutu-amber);
+    }
+
+    #tutu-okno-prototype .tutu-availability.is-danger {
+      color: #b63c35;
+    }
+
+    #tutu-okno-prototype .tutu-mini-action {
+      min-height: 30px;
+      padding: 6px 10px;
+      border: 0;
+      border-radius: 9px 9px 9px 4px;
+      background: var(--tutu-purple-soft);
+      color: var(--tutu-purple-dark);
+      font-size: 11px;
+      font-weight: 500;
+    }
+
+    #tutu-okno-prototype .tutu-mini-action.is-added {
+      background: var(--tutu-purple);
+      color: var(--tutu-surface);
+    }
+
+    #tutu-okno-prototype .tutu-sticky-action {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 10px;
+      margin-top: 10px;
+      padding: 10px 11px;
+      border-radius: 14px 14px 14px 5px;
+      background: var(--tutu-ink);
+      color: var(--tutu-surface);
+    }
+
+    #tutu-okno-prototype .tutu-sticky-action &gt; div {
+      min-width: 0;
+    }
+
+    #tutu-okno-prototype .tutu-sticky-action strong,
+    #tutu-okno-prototype .tutu-sticky-action span {
+      display: block;
+    }
+
+    #tutu-okno-prototype .tutu-sticky-action strong {
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    #tutu-okno-prototype .tutu-sticky-action span {
+      margin-top: 2px;
+      color: #cdd2df;
+      font-size: 11px;
+    }
+
+    #tutu-okno-prototype .tutu-sticky-action button {
+      min-height: 34px;
+      padding: 7px 10px;
+      border: 0;
+      border-radius: 10px 10px 10px 4px;
+      background: var(--tutu-yellow);
+      color: var(--tutu-ink);
+      font-size: 11px;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+
+    #tutu-okno-prototype .tutu-avatar-stack {
+      display: flex;
+      align-items: center;
+      margin: 10px 0 12px;
+    }
+
+    #tutu-okno-prototype .tutu-avatar-stack .tutu-avatar {
+      width: 32px;
+      height: 32px;
+      margin-left: -5px;
+      border: 2px solid var(--tutu-page);
+      font-size: 11px;
+    }
+
+    #tutu-okno-prototype .tutu-avatar-stack .tutu-avatar:first-child {
+      margin-left: 0;
+    }
+
+    #tutu-okno-prototype .tutu-avatar-stack-copy {
+      display: grid;
+      gap: 2px;
+      margin-left: 8px;
+      color: var(--tutu-ink-soft);
+      font-size: 11px;
+    }
+
+    #tutu-okno-prototype .tutu-vote-card {
+      padding: 10px;
+      border: 1px solid var(--tutu-line);
+      border-radius: 14px 14px 14px 5px;
+      background: var(--tutu-surface);
+    }
+
+    #tutu-okno-prototype .tutu-vote-card + .tutu-vote-card {
+      margin-top: 8px;
+    }
+
+    #tutu-okno-prototype .tutu-vote-actions {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 5px;
+      margin-top: 8px;
+    }
+
+    #tutu-okno-prototype .tutu-vote-actions button {
+      min-height: 31px;
+      padding: 6px 4px;
+      border: 1px solid var(--tutu-line);
+      border-radius: 9px;
+      background: var(--tutu-surface);
+      color: var(--tutu-ink-soft);
+      font-size: 11px;
+      font-weight: 500;
+    }
+
+    #tutu-okno-prototype .tutu-vote-actions button[aria-pressed=&quot;true&quot;] {
+      border-color: var(--tutu-purple);
+      background: var(--tutu-purple-soft);
+      color: var(--tutu-purple-dark);
+    }
+
+    #tutu-okno-prototype .tutu-own-vote {
+      min-height: 14px;
+      margin-top: 5px;
+      color: var(--tutu-purple-dark);
+      font-size: 11px;
+    }
+
+    #tutu-okno-prototype .tutu-screen-underlay {
+      min-height: 704px;
+      background:
+        linear-gradient(rgba(23, 33, 59, 0.24), rgba(23, 33, 59, 0.24)),
+        repeating-linear-gradient(to bottom, #ffffff 0, #ffffff 42px, #e8eaf0 43px);
+      filter: saturate(0.8);
+    }
+
+    #tutu-okno-prototype .tutu-sheet {
+      position: absolute;
+      z-index: 9;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      padding: 8px 16px 18px;
+      border-radius: 26px 26px 0 0;
+      background: var(--tutu-surface);
+      box-shadow: 0 -12px 34px rgba(23, 33, 59, 0.2);
+    }
+
+    #tutu-okno-prototype .tutu-sheet-handle {
+      width: 38px;
+      height: 4px;
+      margin: 2px auto 12px;
+      border-radius: 999px;
+      background: #cdd1dc;
+    }
+
+    #tutu-okno-prototype .tutu-sheet-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    #tutu-okno-prototype .tutu-sheet h2 {
+      margin: 4px 0 3px;
+      font-size: 20px;
+      font-weight: 500;
+    }
+
+    #tutu-okno-prototype .tutu-close {
+      display: grid;
+      place-items: center;
+      width: 34px;
+      height: 34px;
+      border: 0;
+      border-radius: 50%;
+      background: var(--tutu-page);
+      color: var(--tutu-ink);
+    }
+
+    #tutu-okno-prototype .tutu-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      min-height: 24px;
+      padding: 4px 7px;
+      border-radius: 999px;
+      background: var(--tutu-green-soft);
+      color: #0d604b;
+      font-size: 11px;
+      font-weight: 500;
+    }
+
+    #tutu-okno-prototype .tutu-badge.tutu-badge-vote {
+      background: var(--tutu-yellow-soft);
+      color: #704900;
+    }
+
+    #tutu-okno-prototype .tutu-detail-list {
+      display: grid;
+      gap: 9px;
+      margin: 13px 0;
+    }
+
+    #tutu-okno-prototype .tutu-detail-row {
+      display: grid;
+      grid-template-columns: 20px 1fr;
+      align-items: start;
+      gap: 8px;
+      color: var(--tutu-ink);
+      font-size: 11px;
+      line-height: 1.35;
+    }
+
+    #tutu-okno-prototype .tutu-detail-row span {
+      color: var(--tutu-purple-dark);
+    }
+
+    #tutu-okno-prototype .tutu-attachments {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin: 10px 0;
+    }
+
+    #tutu-okno-prototype .tutu-attachment {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      min-height: 48px;
+      padding: 9px;
+      border-radius: 12px 12px 12px 5px;
+      background: var(--tutu-page);
+      font-size: 11px;
+    }
+
+    #tutu-okno-prototype .tutu-sheet-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    #tutu-okno-prototype .tutu-conflict-hero {
+      padding: 18px 14px 14px;
+      background: var(--tutu-coral-soft);
+    }
+
+    #tutu-okno-prototype .tutu-conflict-hero .tutu-state-icon {
+      background: var(--tutu-coral);
+    }
+
+    #tutu-okno-prototype .tutu-conflict-hero h2,
+    #tutu-okno-prototype .tutu-winner-hero h2 {
+      margin: 12px 0 6px;
+      font-size: 22px;
+      line-height: 1.12;
+      font-weight: 500;
+    }
+
+    #tutu-okno-prototype .tutu-timeline {
+      display: grid;
+      gap: 0;
+      margin: 14px 0;
+    }
+
+    #tutu-okno-prototype .tutu-timeline-step {
+      display: grid;
+      grid-template-columns: 20px 1fr auto;
+      align-items: center;
+      gap: 8px;
+      min-height: 42px;
+      border-bottom: 1px solid var(--tutu-line);
+      font-size: 11px;
+    }
+
+    #tutu-okno-prototype .tutu-timeline-step:last-child {
+      border-bottom: 0;
+    }
+
+    #tutu-okno-prototype .tutu-timeline-step strong {
+      font-weight: 500;
+    }
+
+    #tutu-okno-prototype .tutu-winner-hero {
+      padding: 18px 14px 15px;
+      background: var(--tutu-yellow);
+    }
+
+    #tutu-okno-prototype .tutu-winner-hero .tutu-state-icon {
+      background: var(--tutu-ink);
+    }
+
+    #tutu-okno-prototype .tutu-booking-card {
+      padding: 14px;
+      border-radius: 18px 18px 18px 7px;
+      background: var(--tutu-ink);
+      color: var(--tutu-surface);
+    }
+
+    #tutu-okno-prototype .tutu-booking-card .tutu-meta {
+      color: #c9cfdf;
+    }
+
+    #tutu-okno-prototype .tutu-booking-route {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+      gap: 8px;
+      margin: 12px 0;
+    }
+
+    #tutu-okno-prototype .tutu-booking-place {
+      display: grid;
+      gap: 2px;
+    }
+
+    #tutu-okno-prototype .tutu-booking-place strong {
+      font-size: 18px;
+      font-weight: 500;
+    }
+
+    #tutu-okno-prototype .tutu-booking-line {
+      position: relative;
+      height: 2px;
+      background: var(--tutu-yellow);
+    }
+
+    #tutu-okno-prototype .tutu-booking-line::after {
+      position: absolute;
+      top: -3px;
+      right: -1px;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--tutu-yellow);
+      content: &quot;&quot;;
+    }
+
+    #tutu-okno-prototype .tutu-booking-facts {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 7px;
+      margin-top: 10px;
+    }
+
+    #tutu-okno-prototype .tutu-booking-fact {
+      display: grid;
+      gap: 2px;
+      padding: 8px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.1);
+      font-size: 11px;
+    }
+
+    #tutu-okno-prototype .tutu-booking-fact strong {
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    #tutu-okno-prototype .tutu-audit-summary {
+      display: grid;
+      grid-template-columns: 44px 1fr;
+      align-items: center;
+      gap: 10px;
+      padding: 13px;
+      border-radius: 16px 16px 16px 6px;
+      background: var(--tutu-yellow);
+    }
+
+    #tutu-okno-prototype .tutu-audit-item {
+      align-items: flex-start;
+      padding: 11px;
+      border: 1px solid var(--tutu-line);
+      border-radius: 13px 13px 13px 5px;
+      background: var(--tutu-surface);
+    }
+
+    #tutu-okno-prototype .tutu-audit-item-main {
+      display: grid;
+      grid-template-columns: 20px 1fr;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    #tutu-okno-prototype .tutu-audit-item-main strong {
+      display: block;
+      margin-bottom: 2px;
+      font-size: 11px;
+      font-weight: 500;
+    }
+
+    #tutu-okno-prototype .tutu-audit-item-main span {
+      color: var(--tutu-ink-soft);
+      font-size: 11px;
+      line-height: 1.3;
+    }
+
+    #tutu-okno-prototype .tutu-profile-hero {
+      padding: 18px 14px;
+      background: var(--tutu-ink);
+      color: var(--tutu-surface);
+    }
+
+    #tutu-okno-prototype .tutu-profile-row {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+    }
+
+    #tutu-okno-prototype .tutu-profile-row .tutu-avatar {
+      width: 52px;
+      height: 52px;
+      font-size: 16px;
+    }
+
+    #tutu-okno-prototype .tutu-profile-copy {
+      display: grid;
+      gap: 4px;
+    }
+
+    #tutu-okno-prototype .tutu-profile-copy strong {
+      font-size: 18px;
+      font-weight: 500;
+    }
+
+    #tutu-okno-prototype .tutu-profile-copy span {
+      color: #cbd1e0;
+      font-size: 11px;
+    }
+
+    #tutu-okno-prototype .tutu-action-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    #tutu-okno-prototype .tutu-action-grid button {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 48px;
+      padding: 10px;
+      border: 0;
+      border-radius: 13px 13px 13px 5px;
+      background: rgba(255, 255, 255, 0.12);
+      color: var(--tutu-surface);
+      font-size: 11px;
+      font-weight: 500;
+      text-align: left;
+    }
+
+    #tutu-okno-prototype .tutu-trip-card {
+      margin-top: 10px;
+      padding: 12px;
+    }
+
+    #tutu-okno-prototype .tutu-trip-art {
+      display: grid;
+      place-items: center;
+      width: 48px;
+      height: 48px;
+      flex: 0 0 auto;
+      border-radius: 14px 14px 14px 5px;
+      background: linear-gradient(135deg, var(--tutu-purple) 0 48%, var(--tutu-yellow) 48% 100%);
+      color: var(--tutu-surface);
+      font-size: 20px;
+    }
+
+    #tutu-okno-prototype .tutu-trip-copy-card {
+      display: grid;
+      gap: 3px;
+      min-width: 0;
+      flex: 1;
+    }
+
+    #tutu-okno-prototype .tutu-trip-copy-card strong {
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    #tutu-okno-prototype .tutu-memory-summary {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 7px;
+      margin-bottom: 11px;
+    }
+
+    #tutu-okno-prototype .tutu-memory-stat {
+      display: grid;
+      gap: 3px;
+      padding: 9px;
+      border-radius: 12px 12px 12px 5px;
+      background: var(--tutu-surface);
+      font-size: 11px;
+      color: var(--tutu-ink-soft);
+    }
+
+    #tutu-okno-prototype .tutu-memory-stat strong {
+      color: var(--tutu-ink);
+      font-size: 16px;
+      font-weight: 500;
+    }
+
+    #tutu-okno-prototype .tutu-photo-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      grid-auto-rows: 67px;
+      gap: 5px;
+      margin: 10px 0;
+    }
+
+    #tutu-okno-prototype .tutu-photo-tile {
+      position: relative;
+      overflow: hidden;
+      border-radius: 11px 11px 11px 4px;
+      background: linear-gradient(145deg, var(--tutu-cyan), var(--tutu-purple));
+    }
+
+    #tutu-okno-prototype .tutu-photo-tile:nth-child(2) {
+      background: linear-gradient(145deg, var(--tutu-yellow), var(--tutu-coral));
+    }
+
+    #tutu-okno-prototype .tutu-photo-tile:nth-child(3) {
+      background: linear-gradient(145deg, var(--tutu-lime), var(--tutu-cyan));
+    }
+
+    #tutu-okno-prototype .tutu-photo-tile:nth-child(4) {
+      background: linear-gradient(145deg, var(--tutu-purple), var(--tutu-coral));
+    }
+
+    #tutu-okno-prototype .tutu-photo-tile::after {
+      position: absolute;
+      right: 8px;
+      bottom: 6px;
+      color: rgba(255, 255, 255, 0.92);
+      content: attr(data-emoji);
+      font-size: 25px;
+      transform: rotate(-6deg);
+    }
+
+    #tutu-okno-prototype .tutu-memory-row {
+      min-height: 39px;
+      padding: 7px 0;
+      border-bottom: 1px solid var(--tutu-line);
+      font-size: 11px;
+    }
+
+    #tutu-okno-prototype .tutu-format-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      margin: 8px 0 10px;
+    }
+
+    #tutu-okno-prototype .tutu-format-grid button {
+      min-height: 58px;
+      padding: 7px;
+      border: 1px solid var(--tutu-line);
+      border-radius: 11px 11px 11px 4px;
+      background: var(--tutu-surface);
+      color: var(--tutu-ink);
+      font-size: 11px;
+    }
+
+    #tutu-okno-prototype .tutu-format-grid button.is-selected {
+      border-color: var(--tutu-purple);
+      background: var(--tutu-purple-soft);
+      color: var(--tutu-purple-dark);
+    }
+
+    #tutu-okno-prototype .tutu-success-inline {
+      display: none;
+      margin-top: 8px;
+      color: var(--tutu-green);
+      font-size: 11px;
+      font-weight: 500;
+    }
+
+    #tutu-okno-prototype .tutu-success-inline.is-visible {
+      display: block;
+    }
+
+    @media (max-width: 420px) {
+      #tutu-okno-prototype .tutu-prototype-switcher {
+        justify-content: flex-start;
+      }
+
+      #tutu-okno-prototype .tutu-prototype-switcher button {
+        padding-inline: 9px;
+      }
+
+      #tutu-okno-prototype .tutu-device {
+        border-width: 5px;
+        border-radius: 30px;
+      }
+
+      #tutu-okno-prototype .tutu-page-content &gt; .tutu-chips {
+        flex-wrap: wrap;
+      }
+
+      #tutu-okno-prototype .tutu-calendar-event {
+        padding-inline: 3px;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      #tutu-okno-prototype .tutu-calendar-event small {
+        display: none;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      #tutu-okno-prototype .tutu-scan-overlay.is-scanning::before,
+      #tutu-okno-prototype .tutu-check-button[aria-busy=&quot;true&quot;] svg {
+        animation: none;
+      }
+    }
+  &lt;/style&gt;
+
+  &lt;div class=&quot;tutu-prototype-switcher&quot; role=&quot;tablist&quot; aria-label=&quot;Экраны прототипа&quot;&gt;
+    &lt;button type=&quot;button&quot; role=&quot;tab&quot; aria-selected=&quot;true&quot; data-go=&quot;calendar&quot;&gt;Неделя&lt;/button&gt;
+    &lt;button type=&quot;button&quot; role=&quot;tab&quot; aria-selected=&quot;false&quot; data-go=&quot;event&quot;&gt;Событие&lt;/button&gt;
+    &lt;button type=&quot;button&quot; role=&quot;tab&quot; aria-selected=&quot;false&quot; data-go=&quot;create&quot;&gt;Создание&lt;/button&gt;
+    &lt;button type=&quot;button&quot; role=&quot;tab&quot; aria-selected=&quot;false&quot; data-go=&quot;manual&quot;&gt;Вручную&lt;/button&gt;
+    &lt;button type=&quot;button&quot; role=&quot;tab&quot; aria-selected=&quot;false&quot; data-go=&quot;ideas&quot;&gt;Подбор&lt;/button&gt;
+    &lt;button type=&quot;button&quot; role=&quot;tab&quot; aria-selected=&quot;false&quot; data-go=&quot;vote&quot;&gt;Голосование&lt;/button&gt;
+    &lt;button type=&quot;button&quot; role=&quot;tab&quot; aria-selected=&quot;false&quot; data-go=&quot;conflict&quot;&gt;Конфликт&lt;/button&gt;
+    &lt;button type=&quot;button&quot; role=&quot;tab&quot; aria-selected=&quot;false&quot; data-go=&quot;winner&quot;&gt;Победитель&lt;/button&gt;
+    &lt;button type=&quot;button&quot; role=&quot;tab&quot; aria-selected=&quot;false&quot; data-go=&quot;audit&quot;&gt;Проверка&lt;/button&gt;
+    &lt;button type=&quot;button&quot; role=&quot;tab&quot; aria-selected=&quot;false&quot; data-go=&quot;trips&quot;&gt;Поездки&lt;/button&gt;
+    &lt;button type=&quot;button&quot; role=&quot;tab&quot; aria-selected=&quot;false&quot; data-go=&quot;memories&quot;&gt;Фото&lt;/button&gt;
+  &lt;/div&gt;
+
+  &lt;div class=&quot;tutu-device&quot; aria-label=&quot;Интерактивный мобильный прототип Tutu Окно&quot;&gt;
+    &lt;div class=&quot;tutu-statusbar&quot;&gt;
+      &lt;span&gt;9:41&lt;/span&gt;
+      &lt;span class=&quot;tutu-status-icons&quot;&gt;
+        &lt;i data-lucide=&quot;signal&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;
+        &lt;i data-lucide=&quot;wifi&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;
+        &lt;i data-lucide=&quot;battery-medium&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;
+      &lt;/span&gt;
+    &lt;/div&gt;
+
+    &lt;div class=&quot;tutu-screen-mount&quot; data-screen-mount&gt;
+    &lt;section class=&quot;tutu-screen is-active&quot; data-screen-panel=&quot;calendar&quot; aria-label=&quot;Недельный календарь&quot;&gt;
+      &lt;header class=&quot;tutu-appbar&quot;&gt;
+        &lt;button type=&quot;button&quot; class=&quot;tutu-trip-button&quot; data-go=&quot;trips&quot; aria-label=&quot;Открыть поездки&quot;&gt;
+          &lt;span class=&quot;tutu-wordmark&quot; aria-label=&quot;Tutu&quot;&gt;&lt;span class=&quot;tutu-wordmark-first&quot;&gt;tu&lt;/span&gt;&lt;span class=&quot;tutu-wordmark-second&quot;&gt;tu&lt;/span&gt;&lt;/span&gt;
+          &lt;span class=&quot;tutu-trip-copy&quot;&gt;
+            &lt;strong&gt;Казань &lt;i data-lucide=&quot;chevron-down&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;/strong&gt;
+            &lt;small&gt;10–13 сентября · 4 участника&lt;/small&gt;
+          &lt;/span&gt;
+        &lt;/button&gt;
+        &lt;button type=&quot;button&quot; class=&quot;tutu-avatar-button&quot; data-go=&quot;trips&quot; aria-label=&quot;Открыть профиль&quot;&gt;Н&lt;/button&gt;
+      &lt;/header&gt;
+
+      &lt;div class=&quot;tutu-toolbar&quot;&gt;
+        &lt;div class=&quot;tutu-toolbar-row&quot;&gt;
+          &lt;div class=&quot;tutu-chips&quot; aria-label=&quot;Фильтр участников&quot;&gt;
+            &lt;button type=&quot;button&quot; class=&quot;tutu-chip is-selected&quot; data-person=&quot;all&quot;&gt;Все&lt;/button&gt;
+            &lt;button type=&quot;button&quot; class=&quot;tutu-chip&quot; data-person=&quot;me&quot;&gt;Я&lt;/button&gt;
+            &lt;button type=&quot;button&quot; class=&quot;tutu-chip&quot; data-person=&quot;anna&quot;&gt;Аня&lt;/button&gt;
+          &lt;/div&gt;
+          &lt;button type=&quot;button&quot; class=&quot;tutu-check-button&quot; data-check-plan aria-busy=&quot;false&quot;&gt;&lt;i data-lucide=&quot;sparkles&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;span&gt;Проверить&lt;/span&gt;&lt;/button&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+
+      &lt;div class=&quot;tutu-week-header&quot; aria-hidden=&quot;true&quot;&gt;
+        &lt;span&gt;&lt;/span&gt;
+        &lt;span class=&quot;tutu-day-head&quot;&gt;Пн&lt;strong&gt;7&lt;/strong&gt;&lt;/span&gt;
+        &lt;span class=&quot;tutu-day-head&quot;&gt;Вт&lt;strong&gt;8&lt;/strong&gt;&lt;/span&gt;
+        &lt;span class=&quot;tutu-day-head&quot;&gt;Ср&lt;strong&gt;9&lt;/strong&gt;&lt;/span&gt;
+        &lt;span class=&quot;tutu-day-head&quot;&gt;Чт&lt;strong&gt;10&lt;/strong&gt;&lt;/span&gt;
+        &lt;span class=&quot;tutu-day-head&quot;&gt;Пт&lt;strong&gt;11&lt;/strong&gt;&lt;/span&gt;
+        &lt;span class=&quot;tutu-day-head is-current&quot;&gt;Сб&lt;strong&gt;12&lt;/strong&gt;&lt;/span&gt;
+        &lt;span class=&quot;tutu-day-head&quot;&gt;Вс&lt;strong&gt;13&lt;/strong&gt;&lt;/span&gt;
+      &lt;/div&gt;
+
+      &lt;div class=&quot;tutu-calendar-grid&quot; aria-label=&quot;События недели с 7 по 13 сентября&quot;&gt;
+        &lt;span class=&quot;tutu-time-label tutu-time-09&quot;&gt;09&lt;/span&gt;
+        &lt;span class=&quot;tutu-time-label tutu-time-12&quot;&gt;12&lt;/span&gt;
+        &lt;span class=&quot;tutu-time-label tutu-time-15&quot;&gt;15&lt;/span&gt;
+        &lt;span class=&quot;tutu-time-label tutu-time-18&quot;&gt;18&lt;/span&gt;
+        &lt;span class=&quot;tutu-time-label tutu-time-21&quot;&gt;21&lt;/span&gt;
+
+        &lt;button type=&quot;button&quot; class=&quot;tutu-calendar-event tutu-event-ticket&quot; data-go=&quot;event&quot; style=&quot;--tutu-column:3;--tutu-top:386px;--tutu-height:74px&quot; aria-label=&quot;Поезд Москва — Казань, четверг 19:40&quot;&gt;
+          Поезд&lt;small&gt;Билет&lt;/small&gt;
+        &lt;/button&gt;
+        &lt;button type=&quot;button&quot; class=&quot;tutu-calendar-event tutu-event-confirmed&quot; data-go=&quot;event&quot; style=&quot;--tutu-column:4;--tutu-top:74px;--tutu-height:72px&quot; aria-label=&quot;Казанский Кремль, пятница 11:00&quot;&gt;
+          Кремль&lt;small&gt;11:00&lt;/small&gt;
+        &lt;/button&gt;
+        &lt;button type=&quot;button&quot; class=&quot;tutu-calendar-event tutu-event-soft&quot; data-go=&quot;event&quot; style=&quot;--tutu-column:4;--tutu-top:198px;--tutu-height:50px&quot; aria-label=&quot;Обед, пятница 14:30&quot;&gt;
+          Обед&lt;small&gt;14:30&lt;/small&gt;
+        &lt;/button&gt;
+        &lt;button type=&quot;button&quot; class=&quot;tutu-calendar-event tutu-event-confirmed&quot; data-go=&quot;event&quot; style=&quot;--tutu-column:5;--tutu-top:38px;--tutu-height:68px&quot; aria-label=&quot;Экскурсия по центру, суббота 10:00&quot;&gt;
+          Центр&lt;small&gt;10:00&lt;/small&gt;
+        &lt;/button&gt;
+        &lt;button type=&quot;button&quot; class=&quot;tutu-calendar-event tutu-event-gap&quot; data-go=&quot;create&quot; style=&quot;--tutu-column:5;--tutu-top:122px;--tutu-height:206px&quot; aria-label=&quot;Свободное окно, суббота с 12:20 до 18:10&quot;&gt;
+          Окно&lt;small&gt;5 ч 50&lt;/small&gt;
+        &lt;/button&gt;
+        &lt;button type=&quot;button&quot; class=&quot;tutu-calendar-event tutu-event-soft&quot; data-go=&quot;event&quot; style=&quot;--tutu-column:5;--tutu-top:382px;--tutu-height:52px&quot; aria-label=&quot;Ужин на Баумана, суббота 19:30&quot;&gt;
+          Ужин&lt;small&gt;19:30&lt;/small&gt;
+        &lt;/button&gt;
+        &lt;button type=&quot;button&quot; class=&quot;tutu-calendar-event tutu-event-vote tutu-event-conflict&quot; data-go=&quot;conflict&quot; style=&quot;--tutu-column:6;--tutu-top:48px;--tutu-height:84px&quot; aria-label=&quot;Голосование Куда перед поездом, три из четырёх ответили, появился конфликт&quot;&gt;
+          Куда?&lt;small&gt;⚠ 3/4&lt;/small&gt;
+        &lt;/button&gt;
+        &lt;button type=&quot;button&quot; class=&quot;tutu-calendar-event tutu-event-ticket&quot; data-go=&quot;event&quot; style=&quot;--tutu-column:6;--tutu-top:244px;--tutu-height:128px&quot; aria-label=&quot;Поезд Казань — Москва, воскресенье 15:30&quot;&gt;
+          Поезд&lt;small&gt;15:30&lt;/small&gt;
+        &lt;/button&gt;
+      &lt;/div&gt;
+
+      &lt;div class=&quot;tutu-scan-overlay&quot; data-scan-overlay aria-hidden=&quot;true&quot;&gt;&lt;/div&gt;
+
+      &lt;nav class=&quot;tutu-bottom-nav&quot; aria-label=&quot;Основная навигация&quot;&gt;
+        &lt;button type=&quot;button&quot; class=&quot;tutu-nav-item&quot; data-go=&quot;create&quot;&gt;&lt;i data-lucide=&quot;plus&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;span&gt;Добавить&lt;/span&gt;&lt;/button&gt;
+        &lt;button type=&quot;button&quot; class=&quot;tutu-calendar-fab&quot; data-go=&quot;calendar&quot;&gt;&lt;span class=&quot;tutu-calendar-fab-icon&quot;&gt;&lt;i data-lucide=&quot;calendar-days&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;/span&gt;&lt;span&gt;Календарь&lt;/span&gt;&lt;/button&gt;
+        &lt;button type=&quot;button&quot; class=&quot;tutu-nav-item&quot; data-go=&quot;memories&quot;&gt;&lt;i data-lucide=&quot;images&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;span&gt;Воспоминания&lt;/span&gt;&lt;/button&gt;
+      &lt;/nav&gt;
+    &lt;/section&gt;
+    &lt;/div&gt;
+
+    &lt;template data-screen-template=&quot;event&quot;&gt;
+    &lt;section class=&quot;tutu-screen&quot; data-screen-panel=&quot;event&quot; aria-label=&quot;Карточка события&quot;&gt;
+      &lt;div class=&quot;tutu-screen-underlay&quot; aria-hidden=&quot;true&quot;&gt;&lt;/div&gt;
+      &lt;div class=&quot;tutu-sheet&quot; role=&quot;dialog&quot; aria-modal=&quot;true&quot; aria-label=&quot;Казанский Кремль&quot;&gt;
+        &lt;div class=&quot;tutu-sheet-handle&quot;&gt;&lt;/div&gt;
+        &lt;div class=&quot;tutu-sheet-head&quot;&gt;
+          &lt;div&gt;
+            &lt;span class=&quot;tutu-badge&quot;&gt;&lt;i data-lucide=&quot;circle-check&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;Запланировано&lt;/span&gt;
+            &lt;h2&gt;Казанский Кремль&lt;/h2&gt;
+            &lt;div class=&quot;tutu-meta&quot;&gt;Пятница, 11 сентября&lt;/div&gt;
+          &lt;/div&gt;
+          &lt;button type=&quot;button&quot; class=&quot;tutu-close&quot; data-go=&quot;calendar&quot; aria-label=&quot;Закрыть&quot;&gt;&lt;i data-lucide=&quot;x&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;/button&gt;
+        &lt;/div&gt;
+
+        &lt;div class=&quot;tutu-detail-list&quot;&gt;
+          &lt;div class=&quot;tutu-detail-row&quot;&gt;&lt;i data-lucide=&quot;clock-3&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;div&gt;11:00–13:00&lt;/div&gt;&lt;/div&gt;
+          &lt;div class=&quot;tutu-detail-row&quot;&gt;&lt;i data-lucide=&quot;map-pin&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;div&gt;Кремль, Казань · &lt;span&gt;Открыть на карте&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;
+          &lt;div class=&quot;tutu-detail-row&quot;&gt;&lt;i data-lucide=&quot;route&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;div&gt;От отеля 18 минут пешком · выехать в 10:32&lt;/div&gt;&lt;/div&gt;
+        &lt;/div&gt;
+
+        &lt;div class=&quot;tutu-section-title&quot;&gt;Участники&lt;/div&gt;
+        &lt;div class=&quot;tutu-avatar-stack&quot;&gt;
+          &lt;span class=&quot;tutu-avatar&quot;&gt;Н&lt;/span&gt;
+          &lt;span class=&quot;tutu-avatar tutu-avatar-purple&quot;&gt;А&lt;/span&gt;
+          &lt;span class=&quot;tutu-avatar tutu-avatar-cyan&quot;&gt;М&lt;/span&gt;
+          &lt;span class=&quot;tutu-avatar tutu-avatar-lime&quot;&gt;И&lt;/span&gt;
+          &lt;span class=&quot;tutu-avatar-stack-copy&quot;&gt;&lt;strong&gt;Все 4 участника&lt;/strong&gt;&lt;span&gt;Маршрут подходит всем&lt;/span&gt;&lt;/span&gt;
+        &lt;/div&gt;
+
+        &lt;div class=&quot;tutu-attachments&quot;&gt;
+          &lt;div class=&quot;tutu-attachment&quot;&gt;&lt;i data-lucide=&quot;ticket-check&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;span&gt;Билеты&lt;br&gt;4 файла&lt;/span&gt;&lt;/div&gt;
+          &lt;div class=&quot;tutu-attachment&quot;&gt;&lt;i data-lucide=&quot;image&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;span&gt;Фотографии&lt;br&gt;6 снимков&lt;/span&gt;&lt;/div&gt;
+        &lt;/div&gt;
+
+        &lt;div class=&quot;tutu-sheet-actions&quot;&gt;
+          &lt;button type=&quot;button&quot; class=&quot;tutu-secondary&quot;&gt;&lt;i data-lucide=&quot;navigation&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;Маршрут&lt;/button&gt;
+          &lt;button type=&quot;button&quot; class=&quot;tutu-primary&quot;&gt;&lt;i data-lucide=&quot;ticket&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;Открыть билет&lt;/button&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+    &lt;/section&gt;
+    &lt;/template&gt;
+
+    &lt;template data-screen-template=&quot;create&quot;&gt;
+    &lt;section class=&quot;tutu-screen&quot; data-screen-panel=&quot;create&quot; aria-label=&quot;Выбор способа создания&quot;&gt;
+      &lt;header class=&quot;tutu-pagebar&quot;&gt;
+        &lt;button type=&quot;button&quot; class=&quot;tutu-back&quot; data-go=&quot;calendar&quot; aria-label=&quot;Назад&quot;&gt;&lt;i data-lucide=&quot;arrow-left&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;/button&gt;
+        &lt;div class=&quot;tutu-title-row&quot;&gt;&lt;strong&gt;Новое в плане&lt;/strong&gt;&lt;span class=&quot;tutu-page-subtitle&quot;&gt;Шаг 1 из 2&lt;/span&gt;&lt;/div&gt;
+      &lt;/header&gt;
+      &lt;div class=&quot;tutu-page-content&quot;&gt;
+        &lt;div class=&quot;tutu-context-card&quot;&gt;
+          &lt;span class=&quot;tutu-context-icon&quot;&gt;&lt;i data-lucide=&quot;calendar-range&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;/span&gt;
+          &lt;span class=&quot;tutu-context-copy&quot;&gt;&lt;strong&gt;Сб, 12 сентября · 12:20–18:10&lt;/strong&gt;&lt;span&gt;Свободны все 4 участника · до ужина 1 ч 20 мин&lt;/span&gt;&lt;/span&gt;
+        &lt;/div&gt;
+
+        &lt;h2 class=&quot;tutu-screen-heading&quot;&gt;Вы уже знаете,&lt;br&gt;что хотите?&lt;/h2&gt;
+
+        &lt;div class=&quot;tutu-choice-stack&quot;&gt;
+          &lt;button type=&quot;button&quot; class=&quot;tutu-choice-card tutu-choice-yellow&quot; data-go=&quot;manual&quot;&gt;
+            &lt;span class=&quot;tutu-choice-icon&quot;&gt;&lt;i data-lucide=&quot;map-pinned&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;/span&gt;
+            &lt;span class=&quot;tutu-choice-copy&quot;&gt;&lt;strong&gt;Да, добавлю вручную&lt;/strong&gt;&lt;span&gt;Место, событие, ссылку или билет&lt;/span&gt;&lt;/span&gt;
+            &lt;i data-lucide=&quot;arrow-right&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;
+          &lt;/button&gt;
+          &lt;button type=&quot;button&quot; class=&quot;tutu-choice-card tutu-choice-cyan&quot; data-go=&quot;ideas&quot;&gt;
+            &lt;span class=&quot;tutu-choice-icon&quot;&gt;&lt;i data-lucide=&quot;sparkles&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;/span&gt;
+            &lt;span class=&quot;tutu-choice-copy&quot;&gt;&lt;strong&gt;Нет, подберите варианты&lt;/strong&gt;&lt;span&gt;Учтём окно, бюджет, интересы и дорогу&lt;/span&gt;&lt;/span&gt;
+            &lt;i data-lucide=&quot;arrow-right&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;
+          &lt;/button&gt;
+        &lt;/div&gt;
+
+        &lt;div class=&quot;tutu-inline-note&quot;&gt;&lt;i data-lucide=&quot;shield-check&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;span&gt;До публикации проверим время в пути и конфликт со следующим обязательным событием.&lt;/span&gt;&lt;/div&gt;
+      &lt;/div&gt;
+    &lt;/section&gt;
+    &lt;/template&gt;
+
+    &lt;template data-screen-template=&quot;manual&quot;&gt;
+    &lt;section class=&quot;tutu-screen&quot; data-screen-panel=&quot;manual&quot; aria-label=&quot;Создание события вручную&quot;&gt;
+      &lt;header class=&quot;tutu-pagebar&quot;&gt;
+        &lt;button type=&quot;button&quot; class=&quot;tutu-back&quot; data-go=&quot;create&quot; aria-label=&quot;Назад&quot;&gt;&lt;i data-lucide=&quot;arrow-left&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;/button&gt;
+        &lt;div class=&quot;tutu-title-row&quot;&gt;&lt;strong&gt;Новое событие&lt;/strong&gt;&lt;span class=&quot;tutu-page-subtitle&quot;&gt;Проверим до публикации&lt;/span&gt;&lt;/div&gt;
+      &lt;/header&gt;
+      &lt;div class=&quot;tutu-page-content&quot;&gt;
+        &lt;div class=&quot;tutu-form-stack&quot;&gt;
+          &lt;div class=&quot;tutu-field&quot;&gt;&lt;label for=&quot;tutu-event-name&quot;&gt;Название&lt;/label&gt;&lt;input id=&quot;tutu-event-name&quot; value=&quot;Речная прогулка по Волге&quot;&gt;&lt;/div&gt;
+          &lt;div class=&quot;tutu-field&quot;&gt;&lt;span class=&quot;tutu-control-label&quot;&gt;Дата и время&lt;/span&gt;&lt;div class=&quot;tutu-field-surface&quot;&gt;Сб, 12 сен · 15:00–16:30&lt;/div&gt;&lt;/div&gt;
+          &lt;div class=&quot;tutu-field&quot;&gt;&lt;span class=&quot;tutu-control-label&quot;&gt;Место&lt;/span&gt;&lt;div class=&quot;tutu-field-surface&quot;&gt;Кремлёвская набережная&lt;/div&gt;&lt;/div&gt;
+
+          &lt;div class=&quot;tutu-field tutu-participant-field&quot;&gt;
+            &lt;span class=&quot;tutu-control-label&quot;&gt;Участники&lt;/span&gt;
+            &lt;div class=&quot;tutu-participant-picker&quot;&gt;
+              &lt;button type=&quot;button&quot; class=&quot;tutu-participant-trigger&quot; data-participant-toggle aria-expanded=&quot;false&quot;&gt;
+                &lt;span data-participant-summary&gt;Все участники · 4&lt;/span&gt;
+                &lt;i data-lucide=&quot;chevron-down&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;
+              &lt;/button&gt;
+              &lt;label class=&quot;tutu-only-me&quot;&gt;&lt;input type=&quot;checkbox&quot; data-only-me&gt;&lt;i data-lucide=&quot;flag&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;span&gt;Только я&lt;/span&gt;&lt;/label&gt;
+            &lt;/div&gt;
+            &lt;div class=&quot;tutu-participant-menu&quot; data-participant-menu&gt;
+              &lt;label class=&quot;tutu-participant-option&quot;&gt;&lt;input type=&quot;checkbox&quot; value=&quot;Никита&quot; data-participant-input checked&gt;&lt;span&gt;Никита · вы&lt;/span&gt;&lt;/label&gt;
+              &lt;label class=&quot;tutu-participant-option&quot;&gt;&lt;input type=&quot;checkbox&quot; value=&quot;Аня&quot; data-participant-input checked&gt;&lt;span&gt;Аня&lt;/span&gt;&lt;/label&gt;
+              &lt;label class=&quot;tutu-participant-option&quot;&gt;&lt;input type=&quot;checkbox&quot; value=&quot;Маша&quot; data-participant-input checked&gt;&lt;span&gt;Маша&lt;/span&gt;&lt;/label&gt;
+              &lt;label class=&quot;tutu-participant-option&quot;&gt;&lt;input type=&quot;checkbox&quot; value=&quot;Илья&quot; data-participant-input checked&gt;&lt;span&gt;Илья&lt;/span&gt;&lt;/label&gt;
+            &lt;/div&gt;
+          &lt;/div&gt;
+
+          &lt;div class=&quot;tutu-field&quot;&gt;
+            &lt;span class=&quot;tutu-control-label&quot;&gt;Как добавить&lt;/span&gt;
+            &lt;div class=&quot;tutu-segmented&quot; data-segment=&quot;mode&quot;&gt;
+              &lt;button type=&quot;button&quot; data-manual-mode=&quot;direct&quot;&gt;Сразу в план&lt;/button&gt;
+              &lt;button type=&quot;button&quot; class=&quot;is-selected&quot; data-manual-mode=&quot;vote&quot;&gt;Голосованием&lt;/button&gt;
+            &lt;/div&gt;
+          &lt;/div&gt;
+
+          &lt;div class=&quot;tutu-status-strip&quot;&gt;&lt;i data-lucide=&quot;circle-check-big&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;span&gt;&lt;strong&gt;Маршрут проверен.&lt;/strong&gt; 25 минут в пути, вернётесь за 1 ч 55 мин до ужина.&lt;/span&gt;&lt;/div&gt;
+
+          &lt;button type=&quot;button&quot; class=&quot;tutu-primary tutu-block&quot; data-manual-submit data-go=&quot;vote&quot;&gt;&lt;i data-lucide=&quot;send&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;span&gt;Создать голосование&lt;/span&gt;&lt;/button&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+    &lt;/section&gt;
+    &lt;/template&gt;
+
+    &lt;template data-screen-template=&quot;ideas&quot;&gt;
+    &lt;section class=&quot;tutu-screen&quot; data-screen-panel=&quot;ideas&quot; aria-label=&quot;Автоматический подбор вариантов&quot;&gt;
+      &lt;header class=&quot;tutu-pagebar&quot;&gt;
+        &lt;button type=&quot;button&quot; class=&quot;tutu-back&quot; data-go=&quot;create&quot; aria-label=&quot;Назад&quot;&gt;&lt;i data-lucide=&quot;arrow-left&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;/button&gt;
+        &lt;div class=&quot;tutu-title-row&quot;&gt;&lt;strong&gt;Чем заполнить окно?&lt;/strong&gt;&lt;span class=&quot;tutu-page-subtitle&quot;&gt;Сб · 12:20–18:10 · до 2 500 ₽/чел.&lt;/span&gt;&lt;/div&gt;
+      &lt;/header&gt;
+      &lt;div class=&quot;tutu-page-content&quot; style=&quot;padding-top:10px&quot;&gt;
+        &lt;div class=&quot;tutu-chips&quot; aria-label=&quot;Фильтры подбора&quot;&gt;
+          &lt;button type=&quot;button&quot; class=&quot;tutu-filter-chip is-selected&quot;&gt;Без такси&lt;/button&gt;
+          &lt;button type=&quot;button&quot; class=&quot;tutu-filter-chip&quot;&gt;Культура&lt;/button&gt;
+          &lt;button type=&quot;button&quot; class=&quot;tutu-filter-chip&quot;&gt;Вода&lt;/button&gt;
+        &lt;/div&gt;
+
+        &lt;div class=&quot;tutu-option-list&quot;&gt;
+          &lt;article class=&quot;tutu-option-card is-selected&quot; data-option-card&gt;
+            &lt;div class=&quot;tutu-option-top&quot;&gt;&lt;span class=&quot;tutu-option-title&quot;&gt;&lt;strong&gt;Иннополис на автобусе&lt;/strong&gt;&lt;span class=&quot;tutu-meta&quot;&gt;14:05–17:32 · через Туту&lt;/span&gt;&lt;/span&gt;&lt;span class=&quot;tutu-price&quot;&gt;790 ₽&lt;/span&gt;&lt;/div&gt;
+            &lt;div class=&quot;tutu-option-metrics&quot;&gt;&lt;span&gt;&lt;i data-lucide=&quot;bus-front&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;52 мин&lt;/span&gt;&lt;span&gt;&lt;i data-lucide=&quot;timer&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;2 ч на месте&lt;/span&gt;&lt;span&gt;&lt;i data-lucide=&quot;users&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;4 места&lt;/span&gt;&lt;/div&gt;
+            &lt;div class=&quot;tutu-option-footer&quot;&gt;&lt;span class=&quot;tutu-availability&quot;&gt;&lt;i data-lucide=&quot;circle-check&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;Запас 58 мин&lt;/span&gt;&lt;button type=&quot;button&quot; class=&quot;tutu-mini-action is-added&quot; data-option-add&gt;Добавлено&lt;/button&gt;&lt;/div&gt;
+          &lt;/article&gt;
+
+          &lt;article class=&quot;tutu-option-card is-selected&quot; data-option-card&gt;
+            &lt;div class=&quot;tutu-option-top&quot;&gt;&lt;span class=&quot;tutu-option-title&quot;&gt;&lt;strong&gt;Музей чак-чака&lt;/strong&gt;&lt;span class=&quot;tutu-meta&quot;&gt;14:30–16:00 · демо-каталог&lt;/span&gt;&lt;/span&gt;&lt;span class=&quot;tutu-price&quot;&gt;800 ₽&lt;/span&gt;&lt;/div&gt;
+            &lt;div class=&quot;tutu-option-metrics&quot;&gt;&lt;span&gt;&lt;i data-lucide=&quot;footprints&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;18 мин&lt;/span&gt;&lt;span&gt;&lt;i data-lucide=&quot;timer&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;1 ч 30 мин&lt;/span&gt;&lt;span&gt;&lt;i data-lucide=&quot;heart&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;Еда&lt;/span&gt;&lt;/div&gt;
+            &lt;div class=&quot;tutu-option-footer&quot;&gt;&lt;span class=&quot;tutu-availability&quot;&gt;&lt;i data-lucide=&quot;circle-check&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;Запас 2 ч 12 мин&lt;/span&gt;&lt;button type=&quot;button&quot; class=&quot;tutu-mini-action is-added&quot; data-option-add&gt;Добавлено&lt;/button&gt;&lt;/div&gt;
+          &lt;/article&gt;
+
+          &lt;article class=&quot;tutu-option-card is-conflict&quot; data-option-card&gt;
+            &lt;div class=&quot;tutu-option-top&quot;&gt;&lt;span class=&quot;tutu-option-title&quot;&gt;&lt;strong&gt;Свияжск&lt;/strong&gt;&lt;span class=&quot;tutu-meta&quot;&gt;13:10–19:10 · поезд + автобус&lt;/span&gt;&lt;/span&gt;&lt;span class=&quot;tutu-price&quot;&gt;2 300 ₽&lt;/span&gt;&lt;/div&gt;
+            &lt;div class=&quot;tutu-option-metrics&quot;&gt;&lt;span&gt;&lt;i data-lucide=&quot;train-front&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;1 ч 35 мин&lt;/span&gt;&lt;span&gt;&lt;i data-lucide=&quot;timer-off&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;Возврат 19:10&lt;/span&gt;&lt;/div&gt;
+            &lt;div class=&quot;tutu-option-footer&quot;&gt;&lt;span class=&quot;tutu-availability is-danger&quot;&gt;&lt;i data-lucide=&quot;triangle-alert&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;Конфликт с ужином&lt;/span&gt;&lt;button type=&quot;button&quot; class=&quot;tutu-mini-action&quot; data-go=&quot;conflict&quot;&gt;Почему&lt;/button&gt;&lt;/div&gt;
+          &lt;/article&gt;
+        &lt;/div&gt;
+
+        &lt;div class=&quot;tutu-sticky-action&quot;&gt;&lt;div&gt;&lt;strong&gt;&lt;span data-selected-count&gt;2&lt;/span&gt; варианта выбрано&lt;/strong&gt;&lt;span&gt;Совпадают с интересами группы&lt;/span&gt;&lt;/div&gt;&lt;button type=&quot;button&quot; data-go=&quot;vote&quot; data-send-ideas&gt;На голосование&lt;/button&gt;&lt;/div&gt;
+      &lt;/div&gt;
+    &lt;/section&gt;
+    &lt;/template&gt;
+
+    &lt;template data-screen-template=&quot;vote&quot;&gt;
+    &lt;section class=&quot;tutu-screen&quot; data-screen-panel=&quot;vote&quot; aria-label=&quot;Активное голосование&quot;&gt;
+      &lt;header class=&quot;tutu-pagebar&quot;&gt;
+        &lt;button type=&quot;button&quot; class=&quot;tutu-back&quot; data-go=&quot;calendar&quot; aria-label=&quot;Назад&quot;&gt;&lt;i data-lucide=&quot;arrow-left&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;/button&gt;
+        &lt;div class=&quot;tutu-title-row&quot;&gt;&lt;strong&gt;Свободное окно в субботу&lt;/strong&gt;&lt;span class=&quot;tutu-page-subtitle&quot;&gt;12:20–18:10 · ответить до 14:15&lt;/span&gt;&lt;/div&gt;
+      &lt;/header&gt;
+      &lt;div class=&quot;tutu-page-content&quot; style=&quot;padding-top:10px&quot;&gt;
+        &lt;div class=&quot;tutu-summary-row&quot;&gt;&lt;span class=&quot;tutu-badge tutu-badge-vote&quot;&gt;&lt;i data-lucide=&quot;vote&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;Голосование · 3/4&lt;/span&gt;&lt;span class=&quot;tutu-meta&quot;&gt;Осталось 24 мин&lt;/span&gt;&lt;/div&gt;
+        &lt;div class=&quot;tutu-avatar-stack&quot;&gt;
+          &lt;span class=&quot;tutu-avatar&quot;&gt;Н&lt;/span&gt;&lt;span class=&quot;tutu-avatar tutu-avatar-purple&quot;&gt;А&lt;/span&gt;&lt;span class=&quot;tutu-avatar tutu-avatar-cyan&quot;&gt;М&lt;/span&gt;&lt;span class=&quot;tutu-avatar tutu-avatar-lime&quot;&gt;И&lt;/span&gt;
+          &lt;span class=&quot;tutu-avatar-stack-copy&quot;&gt;&lt;strong&gt;Илья ещё не ответил&lt;/strong&gt;&lt;span&gt;Бюджеты участников скрыты&lt;/span&gt;&lt;/span&gt;
+        &lt;/div&gt;
+
+        &lt;article class=&quot;tutu-vote-card&quot;&gt;
+          &lt;div class=&quot;tutu-option-top&quot;&gt;&lt;span class=&quot;tutu-option-title&quot;&gt;&lt;strong&gt;Иннополис&lt;/strong&gt;&lt;span class=&quot;tutu-meta&quot;&gt;3 за · 4 места · запас 58 мин&lt;/span&gt;&lt;/span&gt;&lt;span class=&quot;tutu-price&quot;&gt;790 ₽&lt;/span&gt;&lt;/div&gt;
+          &lt;div class=&quot;tutu-vote-actions&quot; data-vote-group=&quot;innopolis&quot;&gt;&lt;button type=&quot;button&quot; aria-pressed=&quot;false&quot; data-vote-choice=&quot;За&quot;&gt;За&lt;/button&gt;&lt;button type=&quot;button&quot; aria-pressed=&quot;false&quot; data-vote-choice=&quot;Можно&quot;&gt;Можно&lt;/button&gt;&lt;button type=&quot;button&quot; aria-pressed=&quot;false&quot; data-vote-choice=&quot;Не могу&quot;&gt;Не могу&lt;/button&gt;&lt;/div&gt;
+          &lt;div class=&quot;tutu-own-vote&quot; aria-live=&quot;polite&quot;&gt;&lt;/div&gt;
+        &lt;/article&gt;
+        &lt;article class=&quot;tutu-vote-card&quot;&gt;
+          &lt;div class=&quot;tutu-option-top&quot;&gt;&lt;span class=&quot;tutu-option-title&quot;&gt;&lt;strong&gt;Музей чак-чака&lt;/strong&gt;&lt;span class=&quot;tutu-meta&quot;&gt;2 за · 1 можно · запас 2 ч 12 мин&lt;/span&gt;&lt;/span&gt;&lt;span class=&quot;tutu-price&quot;&gt;800 ₽&lt;/span&gt;&lt;/div&gt;
+          &lt;div class=&quot;tutu-vote-actions&quot; data-vote-group=&quot;museum&quot;&gt;&lt;button type=&quot;button&quot; aria-pressed=&quot;false&quot; data-vote-choice=&quot;За&quot;&gt;За&lt;/button&gt;&lt;button type=&quot;button&quot; aria-pressed=&quot;false&quot; data-vote-choice=&quot;Можно&quot;&gt;Можно&lt;/button&gt;&lt;button type=&quot;button&quot; aria-pressed=&quot;false&quot; data-vote-choice=&quot;Не могу&quot;&gt;Не могу&lt;/button&gt;&lt;/div&gt;
+          &lt;div class=&quot;tutu-own-vote&quot; aria-live=&quot;polite&quot;&gt;&lt;/div&gt;
+        &lt;/article&gt;
+        &lt;article class=&quot;tutu-vote-card&quot; style=&quot;border-color:var(--tutu-coral)&quot;&gt;
+          &lt;div class=&quot;tutu-option-top&quot;&gt;&lt;span class=&quot;tutu-option-title&quot;&gt;&lt;strong&gt;Свияжск&lt;/strong&gt;&lt;span class=&quot;tutu-meta&quot;&gt;1 за · 2 не могут · конфликт 40 мин&lt;/span&gt;&lt;/span&gt;&lt;span class=&quot;tutu-price&quot;&gt;2 300 ₽&lt;/span&gt;&lt;/div&gt;
+          &lt;div class=&quot;tutu-vote-actions&quot; data-vote-group=&quot;sviyazhsk&quot;&gt;&lt;button type=&quot;button&quot; aria-pressed=&quot;false&quot; data-vote-choice=&quot;За&quot;&gt;За&lt;/button&gt;&lt;button type=&quot;button&quot; aria-pressed=&quot;false&quot; data-vote-choice=&quot;Можно&quot;&gt;Можно&lt;/button&gt;&lt;button type=&quot;button&quot; aria-pressed=&quot;true&quot; data-vote-choice=&quot;Не могу&quot;&gt;Не могу&lt;/button&gt;&lt;/div&gt;
+          &lt;div class=&quot;tutu-own-vote&quot;&gt;Ваш ответ: Не могу&lt;/div&gt;
+        &lt;/article&gt;
+
+        &lt;div class=&quot;tutu-summary-row&quot; style=&quot;margin-top:9px&quot;&gt;&lt;button type=&quot;button&quot; class=&quot;tutu-link-button&quot;&gt;&lt;i data-lucide=&quot;plus&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt; Добавить свой вариант&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;tutu-primary&quot; data-go=&quot;winner&quot;&gt;Завершить&lt;/button&gt;&lt;/div&gt;
+      &lt;/div&gt;
+    &lt;/section&gt;
+    &lt;/template&gt;
+
+    &lt;template data-screen-template=&quot;conflict&quot;&gt;
+    &lt;section class=&quot;tutu-screen&quot; data-screen-panel=&quot;conflict&quot; aria-label=&quot;Конфликт логистики&quot;&gt;
+      &lt;header class=&quot;tutu-pagebar&quot;&gt;
+        &lt;button type=&quot;button&quot; class=&quot;tutu-back&quot; data-go=&quot;calendar&quot; aria-label=&quot;Назад к календарю&quot;&gt;&lt;i data-lucide=&quot;arrow-left&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;/button&gt;
+        &lt;div class=&quot;tutu-title-row&quot;&gt;&lt;strong&gt;Конфликт в голосовании&lt;/strong&gt;&lt;span class=&quot;tutu-page-subtitle&quot;&gt;Проверено только что&lt;/span&gt;&lt;/div&gt;
+      &lt;/header&gt;
+      &lt;div class=&quot;tutu-conflict-hero&quot;&gt;
+        &lt;span class=&quot;tutu-state-icon&quot;&gt;&lt;i data-lucide=&quot;triangle-alert&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;/span&gt;
+        &lt;h2&gt;Один вариант&lt;br&gt;больше не подходит&lt;/h2&gt;
+        &lt;div class=&quot;tutu-meta&quot; style=&quot;color:#8b3934&quot;&gt;Свияжск · расписание изменилось: возвращение в 19:10, ужин на Баумана начинается в 19:30.&lt;/div&gt;
+      &lt;/div&gt;
+      &lt;div class=&quot;tutu-page-content&quot;&gt;
+        &lt;div class=&quot;tutu-timeline&quot; aria-label=&quot;Расчёт маршрута&quot;&gt;
+          &lt;div class=&quot;tutu-timeline-step&quot;&gt;&lt;i data-lucide=&quot;map-pin&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;span&gt;&lt;strong&gt;13:10&lt;/strong&gt; · выезд из Казани&lt;/span&gt;&lt;span&gt;0 мин&lt;/span&gt;&lt;/div&gt;
+          &lt;div class=&quot;tutu-timeline-step&quot;&gt;&lt;i data-lucide=&quot;landmark&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;span&gt;&lt;strong&gt;15:00–17:20&lt;/strong&gt; · Свияжск&lt;/span&gt;&lt;span&gt;2 ч 20&lt;/span&gt;&lt;/div&gt;
+          &lt;div class=&quot;tutu-timeline-step&quot;&gt;&lt;i data-lucide=&quot;undo-2&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;span&gt;&lt;strong&gt;19:10&lt;/strong&gt; · возврат в Казань&lt;/span&gt;&lt;span&gt;+40 мин&lt;/span&gt;&lt;/div&gt;
+          &lt;div class=&quot;tutu-timeline-step&quot;&gt;&lt;i data-lucide=&quot;utensils&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;span&gt;&lt;strong&gt;19:30&lt;/strong&gt; · ужин&lt;/span&gt;&lt;span&gt;не успеть&lt;/span&gt;&lt;/div&gt;
+        &lt;/div&gt;
+
+        &lt;div class=&quot;tutu-status-strip tutu-status-warning&quot;&gt;&lt;i data-lucide=&quot;info&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;span&gt;Нужен буфер минимум 45 минут. Сейчас между возвращением и ужином только 20 минут без учёта дороги.&lt;/span&gt;&lt;/div&gt;
+
+        &lt;div class=&quot;tutu-form-stack&quot; style=&quot;margin-top:12px&quot;&gt;
+          &lt;button type=&quot;button&quot; class=&quot;tutu-primary tutu-block&quot; data-go=&quot;ideas&quot;&gt;&lt;i data-lucide=&quot;sparkles&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;Найти альтернативу&lt;/button&gt;
+          &lt;button type=&quot;button&quot; class=&quot;tutu-secondary tutu-block&quot; data-go=&quot;manual&quot;&gt;&lt;i data-lucide=&quot;clock-3&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;Сдвинуть время&lt;/button&gt;
+          &lt;button type=&quot;button&quot; class=&quot;tutu-link-button&quot; data-go=&quot;vote&quot;&gt;Вернуться к голосованию&lt;/button&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+    &lt;/section&gt;
+    &lt;/template&gt;
+
+    &lt;template data-screen-template=&quot;winner&quot;&gt;
+    &lt;section class=&quot;tutu-screen&quot; data-screen-panel=&quot;winner&quot; aria-label=&quot;Победитель голосования и бронирование&quot;&gt;
+      &lt;header class=&quot;tutu-pagebar&quot;&gt;
+        &lt;button type=&quot;button&quot; class=&quot;tutu-back&quot; data-go=&quot;vote&quot; aria-label=&quot;Назад&quot;&gt;&lt;i data-lucide=&quot;arrow-left&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;/button&gt;
+        &lt;div class=&quot;tutu-title-row&quot;&gt;&lt;strong&gt;Голосование завершено&lt;/strong&gt;&lt;span class=&quot;tutu-page-subtitle&quot;&gt;Цена и места перепроверены&lt;/span&gt;&lt;/div&gt;
+      &lt;/header&gt;
+      &lt;div class=&quot;tutu-winner-hero&quot;&gt;
+        &lt;span class=&quot;tutu-state-icon&quot;&gt;&lt;i data-lucide=&quot;party-popper&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;/span&gt;
+        &lt;h2&gt;Едем&lt;br&gt;в Иннополис&lt;/h2&gt;
+        &lt;div class=&quot;tutu-meta&quot; style=&quot;color:#53420b&quot;&gt;Выбрали 4 из 4 · маршрут подходит всем&lt;/div&gt;
+      &lt;/div&gt;
+      &lt;div class=&quot;tutu-page-content&quot;&gt;
+        &lt;div class=&quot;tutu-status-strip&quot;&gt;&lt;i data-lucide=&quot;refresh-cw&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;span&gt;&lt;strong&gt;Проверено только что.&lt;/strong&gt; Цена не изменилась, доступно 8 мест.&lt;/span&gt;&lt;/div&gt;
+
+        &lt;div class=&quot;tutu-booking-card&quot; style=&quot;margin-top:10px&quot;&gt;
+          &lt;div class=&quot;tutu-summary-row&quot;&gt;&lt;span class=&quot;tutu-badge tutu-badge-vote&quot;&gt;Автобус&lt;/span&gt;&lt;span class=&quot;tutu-meta&quot;&gt;12 сентября&lt;/span&gt;&lt;/div&gt;
+          &lt;div class=&quot;tutu-booking-route&quot;&gt;
+            &lt;span class=&quot;tutu-booking-place&quot;&gt;&lt;strong&gt;14:05&lt;/strong&gt;&lt;span class=&quot;tutu-meta&quot;&gt;Казань&lt;/span&gt;&lt;/span&gt;
+            &lt;span class=&quot;tutu-booking-line&quot;&gt;&lt;/span&gt;
+            &lt;span class=&quot;tutu-booking-place&quot; style=&quot;text-align:right&quot;&gt;&lt;strong&gt;14:57&lt;/strong&gt;&lt;span class=&quot;tutu-meta&quot;&gt;Иннополис&lt;/span&gt;&lt;/span&gt;
+          &lt;/div&gt;
+          &lt;div class=&quot;tutu-booking-facts&quot;&gt;
+            &lt;span class=&quot;tutu-booking-fact&quot;&gt;&lt;span&gt;На человека&lt;/span&gt;&lt;strong&gt;790 ₽&lt;/strong&gt;&lt;/span&gt;
+            &lt;span class=&quot;tutu-booking-fact&quot;&gt;&lt;span&gt;Доступно&lt;/span&gt;&lt;strong&gt;8 мест&lt;/strong&gt;&lt;/span&gt;
+            &lt;span class=&quot;tutu-booking-fact&quot;&gt;&lt;span&gt;Запас&lt;/span&gt;&lt;strong&gt;58 мин&lt;/strong&gt;&lt;/span&gt;
+          &lt;/div&gt;
+        &lt;/div&gt;
+
+        &lt;div class=&quot;tutu-form-stack&quot; style=&quot;margin-top:10px&quot;&gt;
+          &lt;button type=&quot;button&quot; class=&quot;tutu-primary tutu-block&quot;&gt;&lt;i data-lucide=&quot;ticket-check&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;Забронировать в Туту&lt;/button&gt;
+          &lt;button type=&quot;button&quot; class=&quot;tutu-secondary tutu-block&quot; data-go=&quot;calendar&quot;&gt;&lt;i data-lucide=&quot;calendar-plus&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;Закрепить в календаре&lt;/button&gt;
+        &lt;/div&gt;
+        &lt;div class=&quot;tutu-inline-note&quot;&gt;&lt;i data-lucide=&quot;lock-keyhole&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;span&gt;Билеты каждого участника будут видны только ему. В общем событии останутся время и статус брони.&lt;/span&gt;&lt;/div&gt;
+      &lt;/div&gt;
+    &lt;/section&gt;
+    &lt;/template&gt;
+
+    &lt;template data-screen-template=&quot;audit&quot;&gt;
+    &lt;section class=&quot;tutu-screen&quot; data-screen-panel=&quot;audit&quot; aria-label=&quot;Проверка логистики поездки&quot;&gt;
+      &lt;header class=&quot;tutu-pagebar&quot;&gt;
+        &lt;button type=&quot;button&quot; class=&quot;tutu-back&quot; data-go=&quot;calendar&quot; aria-label=&quot;Назад&quot;&gt;&lt;i data-lucide=&quot;arrow-left&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;/button&gt;
+        &lt;div class=&quot;tutu-title-row&quot;&gt;&lt;strong&gt;Проверка поездки&lt;/strong&gt;&lt;span class=&quot;tutu-page-subtitle&quot;&gt;Ничего не меняем без вас&lt;/span&gt;&lt;/div&gt;
+      &lt;/header&gt;
+      &lt;div class=&quot;tutu-page-content&quot;&gt;
+        &lt;div class=&quot;tutu-audit-summary&quot;&gt;
+          &lt;span class=&quot;tutu-context-icon&quot; style=&quot;background:var(--tutu-ink)&quot;&gt;&lt;i data-lucide=&quot;sparkles&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;/span&gt;
+          &lt;span class=&quot;tutu-context-copy&quot;&gt;&lt;strong data-audit-summary&gt;7 событий и 2 билета проверены&lt;/strong&gt;&lt;span&gt;1 конфликт · 3 переезда можно добавить&lt;/span&gt;&lt;/span&gt;
+        &lt;/div&gt;
+
+        &lt;div class=&quot;tutu-audit-list&quot;&gt;
+          &lt;div class=&quot;tutu-audit-item&quot;&gt;&lt;span class=&quot;tutu-audit-item-main&quot;&gt;&lt;i data-lucide=&quot;circle-check&quot; aria-hidden=&quot;true&quot; style=&quot;color:var(--tutu-green)&quot;&gt;&lt;/i&gt;&lt;span&gt;&lt;strong&gt;Билеты в порядке · 2 из 2&lt;/strong&gt;&lt;span&gt;Время отправления не изменилось&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&quot;tutu-badge&quot;&gt;Готово&lt;/span&gt;&lt;/div&gt;
+          &lt;div class=&quot;tutu-audit-item&quot;&gt;&lt;span class=&quot;tutu-audit-item-main&quot;&gt;&lt;i data-lucide=&quot;car-taxi-front&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;span&gt;&lt;strong&gt;Вокзал → отель&lt;/strong&gt;&lt;span&gt;Добавить переезд 25 минут&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&quot;tutu-meta&quot;&gt;10:05&lt;/span&gt;&lt;/div&gt;
+          &lt;div class=&quot;tutu-audit-item&quot;&gt;&lt;span class=&quot;tutu-audit-item-main&quot;&gt;&lt;i data-lucide=&quot;footprints&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;span&gt;&lt;strong&gt;Кремль → обед&lt;/strong&gt;&lt;span&gt;14 минут пешком&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&quot;tutu-meta&quot;&gt;13:00&lt;/span&gt;&lt;/div&gt;
+          &lt;div class=&quot;tutu-audit-item&quot;&gt;&lt;span class=&quot;tutu-audit-item-main&quot;&gt;&lt;i data-lucide=&quot;alarm-clock&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;span&gt;&lt;strong&gt;Отель → вокзал&lt;/strong&gt;&lt;span&gt;Рекомендуем выйти в 14:30&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&quot;tutu-meta&quot;&gt;45 мин&lt;/span&gt;&lt;/div&gt;
+          &lt;button type=&quot;button&quot; class=&quot;tutu-audit-item&quot; data-go=&quot;conflict&quot; style=&quot;width:100%;text-align:left;border-color:var(--tutu-coral)&quot;&gt;&lt;span class=&quot;tutu-audit-item-main&quot;&gt;&lt;i data-lucide=&quot;triangle-alert&quot; aria-hidden=&quot;true&quot; style=&quot;color:var(--tutu-coral)&quot;&gt;&lt;/i&gt;&lt;span&gt;&lt;strong&gt;Свияжск конфликтует с ужином&lt;/strong&gt;&lt;span&gt;Возвращение позже допустимого буфера&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;i data-lucide=&quot;chevron-right&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;/button&gt;
+        &lt;/div&gt;
+
+        &lt;button type=&quot;button&quot; class=&quot;tutu-primary tutu-block&quot; data-audit-add style=&quot;margin-top:11px&quot;&gt;&lt;i data-lucide=&quot;route&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;Добавить 3 переезда&lt;/button&gt;
+        &lt;div class=&quot;tutu-success-inline&quot; data-audit-success&gt;Переезды добавлены как черновики.&lt;/div&gt;
+      &lt;/div&gt;
+    &lt;/section&gt;
+    &lt;/template&gt;
+
+    &lt;template data-screen-template=&quot;trips&quot;&gt;
+    &lt;section class=&quot;tutu-screen&quot; data-screen-panel=&quot;trips&quot; aria-label=&quot;Профиль и поездки&quot;&gt;
+      &lt;div class=&quot;tutu-profile-hero&quot;&gt;
+        &lt;div class=&quot;tutu-profile-row&quot;&gt;
+          &lt;span class=&quot;tutu-avatar&quot;&gt;Н&lt;/span&gt;
+          &lt;span class=&quot;tutu-profile-copy&quot;&gt;&lt;strong&gt;Никита Романов&lt;/strong&gt;&lt;span&gt;4 поездки · 18 попутчиков&lt;/span&gt;&lt;/span&gt;
+          &lt;button type=&quot;button&quot; class=&quot;tutu-icon-button&quot; data-go=&quot;calendar&quot; aria-label=&quot;Закрыть профиль&quot; style=&quot;margin-left:auto;color:var(--tutu-surface)&quot;&gt;&lt;i data-lucide=&quot;x&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;/button&gt;
+        &lt;/div&gt;
+        &lt;div class=&quot;tutu-action-grid&quot; style=&quot;grid-template-columns:1fr&quot;&gt;
+          &lt;button type=&quot;button&quot;&gt;&lt;i data-lucide=&quot;luggage&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;Создать поездку&lt;/button&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+      &lt;div class=&quot;tutu-page-content&quot;&gt;
+        &lt;div class=&quot;tutu-section-title&quot;&gt;Текущая поездка&lt;/div&gt;
+        &lt;div class=&quot;tutu-trip-card&quot;&gt;
+          &lt;div class=&quot;tutu-trip-row&quot;&gt;
+            &lt;span class=&quot;tutu-trip-art&quot;&gt;К&lt;/span&gt;
+            &lt;span class=&quot;tutu-trip-copy-card&quot;&gt;&lt;strong&gt;Казань&lt;/strong&gt;&lt;span class=&quot;tutu-meta&quot;&gt;10–13 сентября · 4 участника&lt;/span&gt;&lt;span class=&quot;tutu-availability&quot;&gt;&lt;i data-lucide=&quot;circle-check&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;План синхронизирован&lt;/span&gt;&lt;/span&gt;
+            &lt;button type=&quot;button&quot; class=&quot;tutu-mini-action&quot; data-go=&quot;calendar&quot;&gt;Открыть&lt;/button&gt;
+          &lt;/div&gt;
+        &lt;/div&gt;
+
+        &lt;div class=&quot;tutu-section-title&quot; style=&quot;margin-top:15px&quot;&gt;Вступить по ссылке или коду&lt;/div&gt;
+        &lt;div class=&quot;tutu-field&quot; style=&quot;margin-top:7px&quot;&gt;&lt;input aria-label=&quot;Ссылка или код поездки&quot; placeholder=&quot;Вставьте ссылку или код&quot;&gt;&lt;/div&gt;
+        &lt;button type=&quot;button&quot; class=&quot;tutu-secondary tutu-block&quot; style=&quot;margin-top:7px&quot;&gt;Вступить&lt;/button&gt;
+
+        &lt;div class=&quot;tutu-summary-row&quot; style=&quot;margin-top:16px&quot;&gt;&lt;span class=&quot;tutu-section-title&quot;&gt;Архив&lt;/span&gt;&lt;button type=&quot;button&quot; class=&quot;tutu-link-button&quot;&gt;Все поездки&lt;/button&gt;&lt;/div&gt;
+        &lt;div class=&quot;tutu-trip-card&quot; style=&quot;margin-top:5px&quot;&gt;
+          &lt;div class=&quot;tutu-memory-row&quot;&gt;&lt;span&gt;Санкт-Петербург&lt;/span&gt;&lt;span class=&quot;tutu-meta&quot;&gt;июнь · 126 фото&lt;/span&gt;&lt;/div&gt;
+          &lt;div class=&quot;tutu-memory-row&quot;&gt;&lt;span&gt;Нижний Новгород&lt;/span&gt;&lt;span class=&quot;tutu-meta&quot;&gt;май · 84 фото&lt;/span&gt;&lt;/div&gt;
+          &lt;div class=&quot;tutu-memory-row&quot; style=&quot;border-bottom:0&quot;&gt;&lt;span&gt;Сочи&lt;/span&gt;&lt;span class=&quot;tutu-meta&quot;&gt;январь · 63 фото&lt;/span&gt;&lt;/div&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+    &lt;/section&gt;
+    &lt;/template&gt;
+
+    &lt;template data-screen-template=&quot;memories&quot;&gt;
+    &lt;section class=&quot;tutu-screen&quot; data-screen-panel=&quot;memories&quot; aria-label=&quot;Фото поездки&quot;&gt;
+      &lt;header class=&quot;tutu-pagebar&quot;&gt;
+        &lt;button type=&quot;button&quot; class=&quot;tutu-back&quot; data-go=&quot;calendar&quot; aria-label=&quot;Назад&quot;&gt;&lt;i data-lucide=&quot;arrow-left&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;/button&gt;
+        &lt;div class=&quot;tutu-title-row&quot;&gt;&lt;strong&gt;Фото Казани&lt;/strong&gt;&lt;span class=&quot;tutu-page-subtitle&quot;&gt;Сопоставим время и геолокацию&lt;/span&gt;&lt;/div&gt;
+      &lt;/header&gt;
+      &lt;div class=&quot;tutu-page-content&quot; style=&quot;padding-top:10px&quot;&gt;
+        &lt;div class=&quot;tutu-memory-summary&quot;&gt;
+          &lt;span class=&quot;tutu-memory-stat&quot;&gt;&lt;strong&gt;38&lt;/strong&gt;фотографий&lt;/span&gt;
+          &lt;span class=&quot;tutu-memory-stat&quot;&gt;&lt;strong&gt;31&lt;/strong&gt;распределена&lt;/span&gt;
+          &lt;span class=&quot;tutu-memory-stat&quot;&gt;&lt;strong&gt;7&lt;/strong&gt;проверить&lt;/span&gt;
+        &lt;/div&gt;
+
+        &lt;div class=&quot;tutu-photo-grid&quot; aria-label=&quot;Превью фотографий&quot;&gt;
+          &lt;span class=&quot;tutu-photo-tile&quot; data-emoji=&quot;🏰&quot;&gt;&lt;/span&gt;
+          &lt;span class=&quot;tutu-photo-tile&quot; data-emoji=&quot;🌇&quot;&gt;&lt;/span&gt;
+          &lt;span class=&quot;tutu-photo-tile&quot; data-emoji=&quot;🛶&quot;&gt;&lt;/span&gt;
+          &lt;span class=&quot;tutu-photo-tile&quot; data-emoji=&quot;✨&quot;&gt;&lt;/span&gt;
+        &lt;/div&gt;
+
+        &lt;div class=&quot;tutu-panel&quot; style=&quot;padding:0 11px&quot;&gt;
+          &lt;div class=&quot;tutu-memory-row&quot;&gt;&lt;span&gt;Казанский Кремль&lt;/span&gt;&lt;span class=&quot;tutu-badge&quot;&gt;12 фото&lt;/span&gt;&lt;/div&gt;
+          &lt;div class=&quot;tutu-memory-row&quot;&gt;&lt;span&gt;Улица Баумана&lt;/span&gt;&lt;span class=&quot;tutu-badge&quot;&gt;9 фото&lt;/span&gt;&lt;/div&gt;
+          &lt;div class=&quot;tutu-memory-row&quot;&gt;&lt;span&gt;Иннополис&lt;/span&gt;&lt;span class=&quot;tutu-badge&quot;&gt;10 фото&lt;/span&gt;&lt;/div&gt;
+          &lt;div class=&quot;tutu-memory-row&quot; style=&quot;border-bottom:0&quot;&gt;&lt;span&gt;Не распределено&lt;/span&gt;&lt;span class=&quot;tutu-badge tutu-badge-vote&quot;&gt;7 проверить&lt;/span&gt;&lt;/div&gt;
+        &lt;/div&gt;
+
+        &lt;div class=&quot;tutu-summary-row&quot; style=&quot;margin-top:12px&quot;&gt;&lt;span class=&quot;tutu-section-title&quot;&gt;Собрать воспоминание&lt;/span&gt;&lt;span class=&quot;tutu-meta&quot;&gt;Черновик&lt;/span&gt;&lt;/div&gt;
+        &lt;div class=&quot;tutu-format-grid&quot; data-format-grid&gt;
+          &lt;button type=&quot;button&quot; class=&quot;is-selected&quot;&gt;&lt;i data-lucide=&quot;smartphone&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;br&gt;Ролик 9:16&lt;/button&gt;
+          &lt;button type=&quot;button&quot;&gt;&lt;i data-lucide=&quot;gallery-horizontal&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;br&gt;Карусель&lt;/button&gt;
+          &lt;button type=&quot;button&quot;&gt;&lt;i data-lucide=&quot;book-image&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;br&gt;Фотоальбом&lt;/button&gt;
+        &lt;/div&gt;
+        &lt;button type=&quot;button&quot; class=&quot;tutu-primary tutu-block&quot; data-photo-generate&gt;&lt;i data-lucide=&quot;wand-sparkles&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;Создать черновик&lt;/button&gt;
+        &lt;div class=&quot;tutu-success-inline&quot; data-photo-success&gt;Черновик ролика готов. Его видят только участники поездки.&lt;/div&gt;
+        &lt;div class=&quot;tutu-inline-note&quot; style=&quot;margin-top:5px&quot;&gt;&lt;i data-lucide=&quot;users-round&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;span&gt;Перед публикацией вы подтверждаете события и видимость фотографий.&lt;/span&gt;&lt;/div&gt;
+      &lt;/div&gt;
+    &lt;/section&gt;
+    &lt;/template&gt;
+  &lt;/div&gt;
+
+  &lt;script&gt;
+    (() =&gt; {
+      const root = document.getElementById(&#x27;tutu-okno-prototype&#x27;);
+      if (!root || root.dataset.initialized === &#x27;true&#x27;) return;
+      const screenMount = root.querySelector(&#x27;[data-screen-mount]&#x27;);
+      if (!screenMount?.firstElementChild) return;
+      root.dataset.initialized = &#x27;true&#x27;;
+      const tabs = [...root.querySelectorAll(&#x27;.tutu-prototype-switcher [data-go]&#x27;)];
+      const screenCache = new Map([[&#x27;calendar&#x27;, screenMount.firstElementChild]]);
+
+      function showScreen(name) {
+        let screen = screenCache.get(name);
+        let isNewScreen = false;
+        if (!screen) {
+          const template = root.querySelector(`template[data-screen-template=&quot;${name}&quot;]`);
+          if (!template?.content.firstElementChild) return;
+          screen = template.content.firstElementChild.cloneNode(true);
+          screenCache.set(name, screen);
+          isNewScreen = true;
+        }
+
+        const openMenu = root.querySelector(&#x27;[data-participant-menu]&#x27;);
+        openMenu?.classList.remove(&#x27;is-open&#x27;);
+        root.querySelector(&#x27;[data-participant-toggle]&#x27;)?.setAttribute(&#x27;aria-expanded&#x27;, &#x27;false&#x27;);
+        screenMount.firstElementChild?.classList.remove(&#x27;is-active&#x27;);
+        screen.classList.add(&#x27;is-active&#x27;);
+        screenMount.replaceChildren(screen);
+        tabs.forEach((tab) =&gt; tab.setAttribute(&#x27;aria-selected&#x27;, String(tab.dataset.go === name)));
+
+        if (name === &#x27;manual&#x27;) updateManualAudience();
+        if (name === &#x27;ideas&#x27;) updateSelectedCount();
+        if (isNewScreen &amp;&amp; window.lucide) {
+          window.lucide.createIcons({ attrs: { width: 16, height: 16 } });
+        }
+      }
+
+      function getManualElements() {
+        return {
+          participantMenu: root.querySelector(&#x27;[data-participant-menu]&#x27;),
+          participantInputs: [...root.querySelectorAll(&#x27;[data-participant-input]&#x27;)],
+          onlyMeInput: root.querySelector(&#x27;[data-only-me]&#x27;),
+          participantSummary: root.querySelector(&#x27;[data-participant-summary]&#x27;),
+          manualSubmit: root.querySelector(&#x27;[data-manual-submit]&#x27;),
+          manualModeButtons: [...root.querySelectorAll(&#x27;[data-manual-mode]&#x27;)]
+        };
+      }
+
+      function setManualMode(mode) {
+        const { onlyMeInput, manualSubmit, manualModeButtons } = getManualElements();
+        if (!onlyMeInput || !manualSubmit) return;
+        manualModeButtons.forEach((button) =&gt; {
+          button.classList.toggle(&#x27;is-selected&#x27;, button.dataset.manualMode === mode);
+          button.disabled = onlyMeInput.checked &amp;&amp; button.dataset.manualMode === &#x27;vote&#x27;;
+        });
+        manualSubmit.dataset.go = mode === &#x27;vote&#x27; ? &#x27;vote&#x27; : &#x27;calendar&#x27;;
+        const label = manualSubmit.querySelector(&#x27;span&#x27;);
+        if (label) label.textContent = mode === &#x27;vote&#x27; ? &#x27;Создать голосование&#x27; : &#x27;Добавить в план&#x27;;
+      }
+
+      function updateManualAudience() {
+        const {
+          participantInputs,
+          onlyMeInput,
+          participantSummary,
+          manualSubmit
+        } = getManualElements();
+        if (!onlyMeInput || !participantSummary || !manualSubmit) return;
+        const selected = participantInputs.filter((input) =&gt; input.checked);
+        onlyMeInput.closest(&#x27;.tutu-only-me&#x27;)?.classList.toggle(&#x27;is-selected&#x27;, onlyMeInput.checked);
+        if (onlyMeInput.checked) {
+          participantSummary.textContent = &#x27;Только я&#x27;;
+          setManualMode(&#x27;direct&#x27;);
+        } else if (selected.length === participantInputs.length) {
+          participantSummary.textContent = `Все участники · ${selected.length}`;
+        } else if (selected.length &gt; 0) {
+          participantSummary.textContent = selected.map((input) =&gt; input.value).join(&#x27;, &#x27;);
+        } else {
+          participantSummary.textContent = &#x27;Никто не выбран&#x27;;
+        }
+        manualSubmit.disabled = selected.length === 0;
+      }
+
+      function updateSelectedCount() {
+        const count = root.querySelectorAll(&#x27;[data-option-card].is-selected&#x27;).length;
+        const countNode = root.querySelector(&#x27;[data-selected-count]&#x27;);
+        const sendButton = root.querySelector(&#x27;[data-send-ideas]&#x27;);
+        if (countNode) countNode.textContent = String(count);
+        if (sendButton) sendButton.disabled = count === 0;
+      }
+
+      root.addEventListener(&#x27;click&#x27;, (event) =&gt; {
+        if (!event.target.closest(&#x27;.tutu-participant-field&#x27;)) {
+          root.querySelector(&#x27;[data-participant-menu]&#x27;)?.classList.remove(&#x27;is-open&#x27;);
+          root.querySelector(&#x27;[data-participant-toggle]&#x27;)?.setAttribute(&#x27;aria-expanded&#x27;, &#x27;false&#x27;);
+        }
+
+        const checkButton = event.target.closest(&#x27;[data-check-plan]&#x27;);
+        if (checkButton) {
+          if (checkButton.dataset.checkState === &#x27;done&#x27;) {
+            showScreen(&#x27;audit&#x27;);
+            return;
+          }
+          const scanOverlay = root.querySelector(&#x27;[data-scan-overlay]&#x27;);
+          const reducedMotion = typeof window.matchMedia === &#x27;function&#x27; &amp;&amp; window.matchMedia(&#x27;(prefers-reduced-motion: reduce)&#x27;).matches;
+          checkButton.disabled = true;
+          checkButton.dataset.checkState = &#x27;scanning&#x27;;
+          checkButton.setAttribute(&#x27;aria-busy&#x27;, &#x27;true&#x27;);
+          checkButton.querySelector(&#x27;span&#x27;).textContent = &#x27;Проверяем…&#x27;;
+          scanOverlay?.classList.add(&#x27;is-scanning&#x27;);
+          window.setTimeout(() =&gt; {
+            scanOverlay?.classList.remove(&#x27;is-scanning&#x27;);
+            checkButton.disabled = false;
+            checkButton.dataset.checkState = &#x27;done&#x27;;
+            checkButton.setAttribute(&#x27;aria-busy&#x27;, &#x27;false&#x27;);
+            checkButton.querySelector(&#x27;span&#x27;).textContent = &#x27;✓ 2 замечания&#x27;;
+            showScreen(&#x27;audit&#x27;);
+          }, reducedMotion ? 80 : 520);
+          return;
+        }
+
+        const participantToggle = event.target.closest(&#x27;[data-participant-toggle]&#x27;);
+        if (participantToggle) {
+          const participantMenu = root.querySelector(&#x27;[data-participant-menu]&#x27;);
+          if (!participantMenu) return;
+          const isOpen = participantMenu.classList.toggle(&#x27;is-open&#x27;);
+          participantToggle.setAttribute(&#x27;aria-expanded&#x27;, String(isOpen));
+          return;
+        }
+
+        const optionButton = event.target.closest(&#x27;[data-option-add]&#x27;);
+        if (optionButton) {
+          const card = optionButton.closest(&#x27;[data-option-card]&#x27;);
+          card.classList.toggle(&#x27;is-selected&#x27;);
+          const selected = card.classList.contains(&#x27;is-selected&#x27;);
+          optionButton.classList.toggle(&#x27;is-added&#x27;, selected);
+          optionButton.textContent = selected ? &#x27;Добавлено&#x27; : &#x27;Добавить&#x27;;
+          updateSelectedCount();
+          return;
+        }
+
+        const voteButton = event.target.closest(&#x27;[data-vote-choice]&#x27;);
+        if (voteButton) {
+          const group = voteButton.closest(&#x27;.tutu-vote-card&#x27;);
+          group.querySelectorAll(&#x27;[data-vote-choice]&#x27;).forEach((button) =&gt; button.setAttribute(&#x27;aria-pressed&#x27;, &#x27;false&#x27;));
+          voteButton.setAttribute(&#x27;aria-pressed&#x27;, &#x27;true&#x27;);
+          group.querySelector(&#x27;.tutu-own-vote&#x27;).textContent = `Ваш ответ: ${voteButton.dataset.voteChoice}`;
+          return;
+        }
+
+        const personButton = event.target.closest(&#x27;[data-person]&#x27;);
+        if (personButton) {
+          root.querySelectorAll(&#x27;[data-person]&#x27;).forEach((button) =&gt; button.classList.remove(&#x27;is-selected&#x27;));
+          personButton.classList.add(&#x27;is-selected&#x27;);
+          return;
+        }
+
+        const segmentedButton = event.target.closest(&#x27;[data-segment] button&#x27;);
+        if (segmentedButton) {
+          segmentedButton.parentElement.querySelectorAll(&#x27;button&#x27;).forEach((button) =&gt; button.classList.remove(&#x27;is-selected&#x27;));
+          segmentedButton.classList.add(&#x27;is-selected&#x27;);
+          if (segmentedButton.dataset.manualMode) setManualMode(segmentedButton.dataset.manualMode);
+          return;
+        }
+
+        const formatButton = event.target.closest(&#x27;[data-format-grid] button&#x27;);
+        if (formatButton) {
+          formatButton.parentElement.querySelectorAll(&#x27;button&#x27;).forEach((button) =&gt; button.classList.remove(&#x27;is-selected&#x27;));
+          formatButton.classList.add(&#x27;is-selected&#x27;);
+          return;
+        }
+
+        const auditButton = event.target.closest(&#x27;[data-audit-add]&#x27;);
+        if (auditButton) {
+          auditButton.textContent = &#x27;✓ Переезды добавлены&#x27;;
+          auditButton.disabled = true;
+          root.querySelector(&#x27;[data-audit-success]&#x27;).classList.add(&#x27;is-visible&#x27;);
+          return;
+        }
+
+        const photoButton = event.target.closest(&#x27;[data-photo-generate]&#x27;);
+        if (photoButton) {
+          photoButton.textContent = &#x27;✓ Черновик создан&#x27;;
+          photoButton.disabled = true;
+          root.querySelector(&#x27;[data-photo-success]&#x27;).classList.add(&#x27;is-visible&#x27;);
+          return;
+        }
+
+        const destination = event.target.closest(&#x27;[data-go]&#x27;);
+        if (destination) showScreen(destination.dataset.go);
+      });
+
+      root.addEventListener(&#x27;change&#x27;, (event) =&gt; {
+        if (event.target.matches(&#x27;[data-only-me]&#x27;)) {
+          const { participantInputs, participantMenu, manualModeButtons } = getManualElements();
+          if (event.target.checked) {
+            participantInputs.forEach((input, index) =&gt; { input.checked = index === 0; });
+            participantMenu?.classList.remove(&#x27;is-open&#x27;);
+            root.querySelector(&#x27;[data-participant-toggle]&#x27;).setAttribute(&#x27;aria-expanded&#x27;, &#x27;false&#x27;);
+          } else {
+            manualModeButtons.forEach((button) =&gt; { button.disabled = false; });
+          }
+          updateManualAudience();
+          return;
+        }
+
+        if (event.target.matches(&#x27;[data-participant-input]&#x27;)) {
+          const { onlyMeInput, manualModeButtons } = getManualElements();
+          if (!onlyMeInput) return;
+          onlyMeInput.checked = false;
+          manualModeButtons.forEach((button) =&gt; { button.disabled = false; });
+          updateManualAudience();
+        }
+      });
+    })();
+  &lt;/script&gt;
+&lt;/div&gt;
+
+&lt;script src=&quot;https://unpkg.com/@floating-ui/core@1.7.3/dist/floating-ui.core.umd.min.js&quot;&gt;&lt;/script&gt;
+&lt;script src=&quot;https://unpkg.com/@floating-ui/dom@1.7.4/dist/floating-ui.dom.umd.min.js&quot;&gt;&lt;/script&gt;
+&lt;script&gt;
+(() =&gt; {
+  if (window.FloatingUIDOM == null) {
+    return;
+  }
+  const { autoUpdate, computePosition, flip, offset, shift, size } =
+    window.FloatingUIDOM;
+  const tooltipPlacements = new Set([&quot;top&quot;, &quot;right&quot;, &quot;bottom&quot;, &quot;left&quot;]);
+  const tooltipId = `codex-visualization-tooltip-${
+    window.crypto?.randomUUID?.() ?? Date.now().toString(36)
+  }`;
+  const tooltipGap = 5;
+  const hoverDelay = 700;
+  const skipDelay = 300;
+  let activeTrigger = null;
+  let pendingTrigger = null;
+  let tooltip = null;
+  let openTimeout = null;
+  let autoUpdateCleanup = null;
+  let positionRequest = 0;
+  let skipDelayUntil = 0;
+
+  const getTrigger = (target) =&gt;
+    target?.nodeType === Node.ELEMENT_NODE
+      ? target.closest(&quot;[data-tooltip]&quot;)
+      : null;
+  const containsTarget = (trigger, target) =&gt;
+    target?.nodeType != null &amp;&amp; trigger.contains(target);
+  const getContent = (trigger) =&gt;
+    trigger.getAttribute(&quot;data-tooltip&quot;)?.trim() ?? &quot;&quot;;
+  const getPlacement = (trigger) =&gt; {
+    const placement = trigger.getAttribute(&quot;data-tooltip-placement&quot;);
+    return tooltipPlacements.has(placement) ? placement : &quot;top&quot;;
+  };
+  const getTooltip = () =&gt; {
+    if (tooltip == null) {
+      tooltip = document.createElement(&quot;div&quot;);
+      tooltip.id = tooltipId;
+      tooltip.className = &quot;tooltip&quot;;
+      tooltip.setAttribute(&quot;role&quot;, &quot;tooltip&quot;);
+    }
+    return tooltip;
+  };
+  const setDescribedBy = (trigger, described) =&gt; {
+    const ids = new Set(
+      (trigger.getAttribute(&quot;aria-describedby&quot;) ?? &quot;&quot;)
+        .split(/\s+/)
+        .filter(Boolean),
+    );
+    if (described) {
+      ids.add(tooltipId);
+    } else {
+      ids.delete(tooltipId);
+    }
+    if (ids.size === 0) {
+      trigger.removeAttribute(&quot;aria-describedby&quot;);
+    } else {
+      trigger.setAttribute(&quot;aria-describedby&quot;, [...ids].join(&quot; &quot;));
+    }
+  };
+  const clearOpenTimeout = () =&gt; {
+    if (openTimeout != null) {
+      window.clearTimeout(openTimeout);
+      openTimeout = null;
+    }
+    pendingTrigger = null;
+  };
+  const closeTooltip = (activateSkipDelay = true) =&gt; {
+    clearOpenTimeout();
+    positionRequest += 1;
+    autoUpdateCleanup?.();
+    autoUpdateCleanup = null;
+    if (activeTrigger == null) {
+      return;
+    }
+    setDescribedBy(activeTrigger, false);
+    activeTrigger = null;
+    tooltip?.remove();
+    if (activateSkipDelay) {
+      skipDelayUntil = Date.now() + skipDelay;
+    }
+  };
+  const updatePosition = (trigger, floating) =&gt; {
+    const request = ++positionRequest;
+    void computePosition(trigger, floating, {
+      middleware: [
+        offset(tooltipGap),
+        flip({ padding: tooltipGap }),
+        shift({ padding: tooltipGap }),
+        size({
+          padding: tooltipGap,
+          apply({ availableHeight, availableWidth, elements }) {
+            elements.floating.style.setProperty(
+              &quot;--tooltip-available-width&quot;,
+              `${Math.max(0, availableWidth)}px`,
+            );
+            elements.floating.style.setProperty(
+              &quot;--tooltip-available-height&quot;,
+              `${Math.max(0, availableHeight)}px`,
+            );
+          },
+        }),
+      ],
+      placement: getPlacement(trigger),
+      strategy: &quot;fixed&quot;,
+    })
+      .then(({ x, y }) =&gt; {
+        if (activeTrigger !== trigger || request !== positionRequest) {
+          return;
+        }
+        const scale = window.devicePixelRatio || 1;
+        floating.style.transform = `translate(${Math.round(x * scale) / scale}px, ${Math.round(y * scale) / scale}px)`;
+        floating.style.visibility = &quot;visible&quot;;
+      })
+      .catch(() =&gt; {
+        if (activeTrigger === trigger &amp;&amp; request === positionRequest) {
+          closeTooltip(false);
+        }
+      });
+  };
+  const openTooltip = (trigger) =&gt; {
+    const content = getContent(trigger);
+    if (!trigger.isConnected || content.length === 0) {
+      return;
+    }
+    clearOpenTimeout();
+    if (activeTrigger === trigger) {
+      return;
+    }
+    closeTooltip();
+    const floating = getTooltip();
+    floating.textContent = content;
+    floating.style.visibility = &quot;hidden&quot;;
+    floating.style.transform = &quot;translate(0, 0)&quot;;
+    document.body.appendChild(floating);
+    activeTrigger = trigger;
+    setDescribedBy(trigger, true);
+    autoUpdateCleanup = autoUpdate(trigger, floating, () =&gt; {
+      updatePosition(trigger, floating);
+    });
+  };
+  const requestOpen = (trigger, immediate = false) =&gt; {
+    if (
+      getContent(trigger).length === 0 ||
+      activeTrigger === trigger ||
+      pendingTrigger === trigger
+    ) {
+      return;
+    }
+    clearOpenTimeout();
+    pendingTrigger = trigger;
+    const delay =
+      immediate || activeTrigger != null || Date.now() &lt; skipDelayUntil
+        ? 0
+        : hoverDelay;
+    if (delay === 0) {
+      openTooltip(trigger);
+      return;
+    }
+    openTimeout = window.setTimeout(() =&gt; {
+      openTimeout = null;
+      pendingTrigger = null;
+      openTooltip(trigger);
+    }, delay);
+  };
+  const handlePointerOpen = (event) =&gt; {
+    if (event.pointerType === &quot;touch&quot;) {
+      return;
+    }
+    const trigger = getTrigger(event.target);
+    if (trigger == null || containsTarget(trigger, event.relatedTarget)) {
+      return;
+    }
+    requestOpen(trigger);
+  };
+  const handleLeave = (event) =&gt; {
+    const trigger = getTrigger(event.target);
+    if (trigger == null || containsTarget(trigger, event.relatedTarget)) {
+      return;
+    }
+    if (activeTrigger === trigger || pendingTrigger === trigger) {
+      closeTooltip();
+    }
+  };
+  const handleFocusIn = (event) =&gt; {
+    const trigger = getTrigger(event.target);
+    if (trigger?.matches(&quot;:focus-visible&quot;)) {
+      requestOpen(trigger, true);
+    }
+  };
+  const handleKeyDown = (event) =&gt; {
+    if (event.key === &quot;Escape&quot;) {
+      closeTooltip();
+    }
+  };
+  const handleContextMenu = (event) =&gt; {
+    const trigger = getTrigger(event.target);
+    if (activeTrigger === trigger || pendingTrigger === trigger) {
+      closeTooltip();
+    }
+  };
+  const destroy = () =&gt; {
+    closeTooltip(false);
+    document.removeEventListener(&quot;pointerover&quot;, handlePointerOpen);
+    document.removeEventListener(&quot;pointerout&quot;, handleLeave);
+    document.removeEventListener(&quot;focusin&quot;, handleFocusIn);
+    document.removeEventListener(&quot;focusout&quot;, handleLeave);
+    document.removeEventListener(&quot;keydown&quot;, handleKeyDown);
+    document.removeEventListener(&quot;contextmenu&quot;, handleContextMenu);
+    tooltip = null;
+  };
+
+  document.addEventListener(&quot;pointerover&quot;, handlePointerOpen);
+  document.addEventListener(&quot;pointerout&quot;, handleLeave);
+  document.addEventListener(&quot;focusin&quot;, handleFocusIn);
+  document.addEventListener(&quot;focusout&quot;, handleLeave);
+  document.addEventListener(&quot;keydown&quot;, handleKeyDown);
+  document.addEventListener(&quot;contextmenu&quot;, handleContextMenu);
+  window.addEventListener(&quot;pagehide&quot;, destroy, { once: true });
+})();
+&lt;/script&gt;
+&lt;script id=&quot;codex-visualization-lucide&quot; async src=&quot;https://unpkg.com/lucide@1.17.0/dist/umd/lucide.js&quot;&gt;&lt;/script&gt;
+&lt;script&gt;
+(() =&gt; {
+  const initialize = () =&gt; {
+    globalThis.lucide?.createIcons({ attrs: { width: 16, height: 16 } });
+  };
+  if (globalThis.lucide != null) {
+    initialize();
+    return;
+  }
+  document
+    .getElementById(&quot;codex-visualization-lucide&quot;)
+    ?.addEventListener(&quot;load&quot;, initialize, { once: true });
+})();
+&lt;/script&gt;
+
+&lt;/body&gt;
+&lt;/html&gt;
+"></iframe>
+</body>
+</html>

@@ -1,0 +1,664 @@
+{
+  "schemaVersion": "1.0.0",
+  "uiSnapshotVersion": "0.3.0",
+  "product": "Tutu Okno",
+  "generatedAt": "2026-08-19",
+  "viewport": {
+    "mode": "mobile-first",
+    "referenceWidthPx": 390,
+    "referenceScreenHeightPx": 704,
+    "minimumSupportedWidthPx": 320
+  },
+  "sourceFiles": {
+    "prototype": "tutu-okno-prototype-v0.3.html",
+    "handoff": "Tutu_Okno_developer_handoff.md",
+    "businessAnalysis": "Tutu_Okno_business_analysis.md"
+  },
+  "navigation": {
+    "productBottomNav": [
+      {
+        "id": "add",
+        "label": "Добавить",
+        "target": "create"
+      },
+      {
+        "id": "calendar",
+        "label": "Календарь",
+        "target": "calendar"
+      },
+      {
+        "id": "memories",
+        "label": "Воспоминания",
+        "target": "memories"
+      }
+    ],
+    "demoOnlyTabs": [
+      "calendar",
+      "event",
+      "create",
+      "manual",
+      "ideas",
+      "vote",
+      "conflict",
+      "winner",
+      "audit",
+      "trips",
+      "memories"
+    ]
+  },
+  "screens": [
+    {
+      "id": "calendar",
+      "name": "Неделя",
+      "purpose": "Показать общий план, свободные окна, голосования и конфликты",
+      "priority": "P0"
+    },
+    {
+      "id": "event",
+      "name": "Карточка события",
+      "purpose": "Показать детали выбранного элемента календаря",
+      "priority": "P0"
+    },
+    {
+      "id": "create",
+      "name": "Новое в плане",
+      "purpose": "Выбрать ручной ввод или подбор вариантов",
+      "priority": "P0"
+    },
+    {
+      "id": "manual",
+      "name": "Новое событие",
+      "purpose": "Задать событие, участников и режим публикации",
+      "priority": "P0"
+    },
+    {
+      "id": "ideas",
+      "name": "Подбор вариантов",
+      "purpose": "Выбрать выполнимые варианты для свободного окна",
+      "priority": "P0"
+    },
+    {
+      "id": "vote",
+      "name": "Голосование",
+      "purpose": "Собрать решения участников по каждому варианту",
+      "priority": "P0"
+    },
+    {
+      "id": "conflict",
+      "name": "Конфликт",
+      "purpose": "Объяснить логистическую проблему и предложить исправления",
+      "priority": "P0"
+    },
+    {
+      "id": "winner",
+      "name": "Победитель",
+      "purpose": "Перепроверить выбранный вариант и перейти к оформлению",
+      "priority": "P0"
+    },
+    {
+      "id": "audit",
+      "name": "Проверка поездки",
+      "purpose": "Показать конфликты и черновики недостающих переездов",
+      "priority": "P1",
+      "demoPriority": "P0"
+    },
+    {
+      "id": "trips",
+      "name": "Профиль и поездки",
+      "purpose": "Создать или открыть поездку, войти по коду и открыть архив",
+      "priority": "P0",
+      "archivePriority": "P1"
+    },
+    {
+      "id": "memories",
+      "name": "Воспоминания",
+      "purpose": "Распределить фотографии и создать медиачерновик",
+      "priority": "P2"
+    }
+  ],
+  "presets": [
+    {
+      "id": "calendar.default",
+      "screen": "calendar",
+      "priority": "P0",
+      "fixture": {
+        "tripTitle": "Казань",
+        "tripDates": "10–13 сентября",
+        "participantCount": 4,
+        "selectedParticipantFilter": "all",
+        "freeGap": "2026-09-12T12:20:00+03:00/2026-09-12T18:10:00+03:00",
+        "visibleConflictCount": 1
+      },
+      "actions": [
+        "Открыть обычное событие",
+        "Открыть свободное окно",
+        "Открыть конфликт",
+        "Выбрать фильтр участника",
+        "Запустить проверку",
+        "Открыть поездки",
+        "Открыть воспоминания"
+      ],
+      "acceptance": [
+        "Элементы расположены по времени в timezone поездки",
+        "Свободное окно отличается от подтверждённого события",
+        "Конфликт имеет иконку или текст, а не только цвет"
+      ]
+    },
+    {
+      "id": "calendar.checking",
+      "screen": "calendar",
+      "priority": "P0",
+      "fixture": {
+        "checkState": "checking",
+        "buttonLabel": "Проверяем…",
+        "buttonDisabled": true,
+        "ariaBusy": true
+      },
+      "actions": [],
+      "next": "audit.issues_found",
+      "acceptance": [
+        "Scan-анимация одноразовая",
+        "prefers-reduced-motion уменьшает или убирает движение",
+        "Проверка не меняет план без подтверждения"
+      ]
+    },
+    {
+      "id": "calendar.checked_with_issues",
+      "screen": "calendar",
+      "priority": "P0",
+      "fixture": {
+        "checkState": "done",
+        "issueCount": 2,
+        "buttonLabel": "2 замечания"
+      },
+      "actions": [
+        "Открыть последний отчёт"
+      ],
+      "next": "audit.issues_found"
+    },
+    {
+      "id": "event.confirmed",
+      "screen": "event",
+      "priority": "P0",
+      "fixture": {
+        "title": "Казанский Кремль",
+        "status": "confirmed",
+        "startsAt": "2026-09-11T11:00:00+03:00",
+        "endsAt": "2026-09-11T13:00:00+03:00",
+        "participantCount": 4,
+        "ticketCount": 4,
+        "photoCount": 6
+      },
+      "actions": [
+        "Открыть маршрут",
+        "Открыть билет",
+        "Вернуться в календарь"
+      ]
+    },
+    {
+      "id": "create.gap_selected",
+      "screen": "create",
+      "priority": "P0",
+      "fixture": {
+        "gap": "2026-09-12T12:20:00+03:00/2026-09-12T18:10:00+03:00",
+        "participantCount": 4,
+        "bufferToNextEventMinutes": 80
+      },
+      "actions": [
+        "Перейти к ручному созданию",
+        "Перейти к подбору"
+      ]
+    },
+    {
+      "id": "manual.group_vote",
+      "screen": "manual",
+      "priority": "P0",
+      "fixture": {
+        "selectedParticipantIds": [
+          "nikita",
+          "anna",
+          "maria",
+          "ilya"
+        ],
+        "onlyMe": false,
+        "publicationMode": "vote",
+        "logisticsStatus": "valid"
+      },
+      "actions": [
+        "Изменить участников",
+        "Включить Только я",
+        "Переключить на прямое добавление",
+        "Создать голосование"
+      ],
+      "next": "vote.active"
+    },
+    {
+      "id": "manual.group_direct",
+      "screen": "manual",
+      "priority": "P0",
+      "fixture": {
+        "selectedParticipantIds": [
+          "nikita",
+          "anna",
+          "maria",
+          "ilya"
+        ],
+        "onlyMe": false,
+        "publicationMode": "direct",
+        "logisticsStatus": "valid"
+      },
+      "actions": [
+        "Добавить в план"
+      ],
+      "next": "calendar.default",
+      "openDecision": "Какие роли могут создать групповое событие без голосования"
+    },
+    {
+      "id": "manual.only_me",
+      "screen": "manual",
+      "priority": "P0",
+      "fixture": {
+        "selectedParticipantIds": [
+          "nikita"
+        ],
+        "onlyMe": true,
+        "publicationMode": "direct",
+        "voteModeDisabled": true
+      },
+      "actions": [
+        "Добавить в личный план",
+        "Выключить пресет"
+      ],
+      "next": "calendar.default",
+      "acceptance": [
+        "Пресет выбирает текущего пользователя",
+        "Пресет отключает голосование",
+        "Ручной выбор одного себя и пресет имеют одну доменную семантику либо различие явно описано"
+      ]
+    },
+    {
+      "id": "manual.no_participants",
+      "screen": "manual",
+      "priority": "P0",
+      "fixture": {
+        "selectedParticipantIds": [],
+        "onlyMe": false,
+        "submitDisabled": true,
+        "participantSummary": "Никто не выбран"
+      },
+      "actions": [
+        "Выбрать хотя бы одного участника"
+      ]
+    },
+    {
+      "id": "ideas.two_selected",
+      "screen": "ideas",
+      "priority": "P0",
+      "fixture": {
+        "selectedCandidateIds": [
+          "innopolis_bus",
+          "chak_chak_museum"
+        ],
+        "candidateCount": 3,
+        "blockingCandidateIds": [
+          "sviyazhsk"
+        ],
+        "budgetPerPerson": 2500
+      },
+      "actions": [
+        "Добавить или убрать выполнимый вариант",
+        "Открыть причину конфликта",
+        "Отправить выбранные варианты на голосование"
+      ],
+      "next": "vote.active",
+      "acceptance": [
+        "CTA выключен при нуле выбранных вариантов",
+        "Blocking-вариант нельзя отправить как полностью проверенный",
+        "Источник demo_catalog явно подписан"
+      ]
+    },
+    {
+      "id": "ideas.none_selected",
+      "screen": "ideas",
+      "priority": "P0",
+      "fixture": {
+        "selectedCandidateIds": [],
+        "sendToVoteDisabled": true
+      },
+      "actions": [
+        "Выбрать вариант"
+      ]
+    },
+    {
+      "id": "vote.active",
+      "screen": "vote",
+      "priority": "P0",
+      "fixture": {
+        "status": "active",
+        "responseProgress": "3/4",
+        "deadline": "2026-09-12T14:15:00+03:00",
+        "allowedValues": [
+          "yes",
+          "maybe",
+          "veto"
+        ]
+      },
+      "actions": [
+        "Выбрать один ответ для каждого варианта",
+        "Изменить ответ до закрытия",
+        "Добавить свой вариант",
+        "Завершить голосование при наличии права"
+      ],
+      "next": "winner.rechecked",
+      "openDecisions": [
+        "Кворум",
+        "Право досрочного завершения",
+        "Ничья",
+        "Поведение veto"
+      ]
+    },
+    {
+      "id": "vote.local_response_selected",
+      "screen": "vote",
+      "priority": "P0",
+      "fixture": {
+        "candidateId": "innopolis_bus",
+        "currentUserValue": "yes",
+        "ariaPressedCountWithinCandidate": 1
+      },
+      "actions": [
+        "Сменить ответ"
+      ]
+    },
+    {
+      "id": "conflict.schedule_changed",
+      "screen": "conflict",
+      "priority": "P0",
+      "fixture": {
+        "candidateId": "sviyazhsk",
+        "reasonCode": "RETURN_BUFFER_TOO_SMALL",
+        "returnAt": "2026-09-12T19:10:00+03:00",
+        "nextRequiredEventAt": "2026-09-12T19:30:00+03:00",
+        "actualBufferMinutes": 20,
+        "requiredBufferMinutes": 45,
+        "logisticsStatus": "blocking"
+      },
+      "actions": [
+        "Найти альтернативу",
+        "Сдвинуть время",
+        "Вернуться к голосованию"
+      ],
+      "acceptance": [
+        "Причина содержит конкретные времена",
+        "Blocking-вариант нельзя выдать за выполнимый",
+        "Голоса не удаляются или не переносятся без явного правила"
+      ]
+    },
+    {
+      "id": "winner.rechecked",
+      "screen": "winner",
+      "priority": "P0",
+      "fixture": {
+        "candidateId": "innopolis_bus",
+        "pollStatus": "closed",
+        "recheckStatus": "valid",
+        "pricePerPerson": 790,
+        "capacity": 8,
+        "returnBufferMinutes": 58,
+        "checkedAtLabel": "только что"
+      },
+      "actions": [
+        "Открыть deeplink Туту",
+        "Закрепить результат в календаре"
+      ],
+      "acceptance": [
+        "Recheck выполняется после закрытия голосования",
+        "Изменившиеся цена или места показываются до перехода",
+        "Возврат в календарь отображает созданный элемент"
+      ]
+    },
+    {
+      "id": "winner.recheck_failed",
+      "screen": "winner",
+      "priority": "P0",
+      "fixture": {
+        "recheckStatus": "sold_out",
+        "bookingActionDisabled": true
+      },
+      "actions": [
+        "Выбрать ближайший эквивалент",
+        "Запустить короткое переголосование"
+      ],
+      "acceptance": [
+        "Победитель не подменяется молча"
+      ]
+    },
+    {
+      "id": "audit.issues_found",
+      "screen": "audit",
+      "priority": "P1",
+      "demoPriority": "P0",
+      "fixture": {
+        "checkedEventCount": 7,
+        "checkedBookingCount": 2,
+        "conflictCount": 1,
+        "suggestedTransferCount": 3
+      },
+      "actions": [
+        "Открыть конфликт",
+        "Добавить переезды как черновики"
+      ],
+      "acceptance": [
+        "Проверка не переставляет события автоматически",
+        "Количество замечаний согласовано между CTA и отчётом"
+      ]
+    },
+    {
+      "id": "audit.transfers_drafted",
+      "screen": "audit",
+      "priority": "P1",
+      "fixture": {
+        "suggestedTransferCount": 3,
+        "draftedTransferCount": 3,
+        "submitDisabled": true,
+        "successMessage": "Переезды добавлены как черновики."
+      },
+      "actions": [
+        "Вернуться к календарю"
+      ]
+    },
+    {
+      "id": "trips.default",
+      "screen": "trips",
+      "priority": "P0",
+      "fixture": {
+        "currentTripId": "kazan_sep_2026",
+        "inviteInputMode": "link_or_code",
+        "archiveTripCount": 3
+      },
+      "actions": [
+        "Создать поездку",
+        "Открыть текущую поездку",
+        "Вступить по ссылке или коду",
+        "Открыть архив"
+      ]
+    },
+    {
+      "id": "memories.default",
+      "screen": "memories",
+      "priority": "P2",
+      "fixture": {
+        "photoCount": 38,
+        "matchedPhotoCount": 31,
+        "needsReviewCount": 7,
+        "selectedFormat": "vertical_video"
+      },
+      "actions": [
+        "Выбрать формат",
+        "Создать черновик"
+      ]
+    },
+    {
+      "id": "memories.draft_ready",
+      "screen": "memories",
+      "priority": "P2",
+      "fixture": {
+        "draftStatus": "ready",
+        "visibility": "trip_participants",
+        "generateDisabled": true
+      },
+      "actions": [
+        "Открыть черновик",
+        "Проверить фото и видимость"
+      ]
+    }
+  ],
+  "transitions": [
+    {
+      "from": "calendar.default",
+      "action": "tap_free_gap_or_add",
+      "to": "create.gap_selected"
+    },
+    {
+      "from": "calendar.default",
+      "action": "tap_event",
+      "to": "event.confirmed"
+    },
+    {
+      "from": "calendar.default",
+      "action": "start_check",
+      "to": "calendar.checking"
+    },
+    {
+      "from": "calendar.checking",
+      "action": "check_completed_with_issues",
+      "to": "audit.issues_found"
+    },
+    {
+      "from": "create.gap_selected",
+      "action": "choose_manual",
+      "to": "manual.group_vote"
+    },
+    {
+      "from": "create.gap_selected",
+      "action": "choose_suggestions",
+      "to": "ideas.two_selected"
+    },
+    {
+      "from": "manual.group_vote",
+      "action": "enable_only_me",
+      "to": "manual.only_me"
+    },
+    {
+      "from": "manual.group_vote",
+      "action": "submit",
+      "to": "vote.active"
+    },
+    {
+      "from": "manual.group_direct",
+      "action": "submit",
+      "to": "calendar.default"
+    },
+    {
+      "from": "manual.only_me",
+      "action": "submit",
+      "to": "calendar.default"
+    },
+    {
+      "from": "ideas.two_selected",
+      "action": "send_to_vote",
+      "to": "vote.active"
+    },
+    {
+      "from": "ideas.two_selected",
+      "action": "open_blocking_reason",
+      "to": "conflict.schedule_changed"
+    },
+    {
+      "from": "vote.active",
+      "action": "logistics_became_blocking",
+      "to": "conflict.schedule_changed"
+    },
+    {
+      "from": "vote.active",
+      "action": "close_poll_and_recheck",
+      "to": "winner.rechecked"
+    },
+    {
+      "from": "conflict.schedule_changed",
+      "action": "find_alternative",
+      "to": "ideas.two_selected"
+    },
+    {
+      "from": "conflict.schedule_changed",
+      "action": "adjust_time",
+      "to": "manual.group_vote"
+    },
+    {
+      "from": "winner.rechecked",
+      "action": "attach_to_calendar",
+      "to": "calendar.default"
+    },
+    {
+      "from": "audit.issues_found",
+      "action": "add_transfer_drafts",
+      "to": "audit.transfers_drafted"
+    },
+    {
+      "from": "memories.default",
+      "action": "generate_draft",
+      "to": "memories.draft_ready"
+    }
+  ],
+  "designTokens": {
+    "status": "prototype_only_not_official_artbook",
+    "fontFamily": "Inter, system-ui, sans-serif",
+    "colors": {
+      "ink": "#0D0B68",
+      "inkSoft": "#5F687D",
+      "purple": "#6F5DF6",
+      "purpleDark": "#5545CA",
+      "purpleSoft": "#EEEAFF",
+      "yellow": "#D1FF1A",
+      "yellowSoft": "#F3FFC4",
+      "lime": "#B9EF54",
+      "cyan": "#6DD8DF",
+      "coral": "#FF776D",
+      "coralSoft": "#FFF0EE",
+      "green": "#168568",
+      "greenSoft": "#E3F7EF",
+      "amber": "#A96600",
+      "amberSoft": "#FFF1D8",
+      "surface": "#FFFFFF",
+      "page": "#F2F3F7",
+      "line": "#DFE2EA"
+    },
+    "motion": {
+      "initialAnimations": false,
+      "loopingAnimations": false,
+      "scanDurationMs": 520,
+      "reducedMotionScanDurationMs": 80
+    }
+  },
+  "truthRules": [
+    "Не показывать capacity как подтверждённую, если источник её не вернул",
+    "Не называть blocking-вариант выполнимым",
+    "Не переставлять события без подтверждения пользователя",
+    "Не раскрывать приватный бюджет другим участникам",
+    "Повторно проверять цену, места и логистику перед deeplink",
+    "Не считать deeplink подтверждённым бронированием",
+    "Маркировать рестораны, события и экскурсии без live supply как demo_catalog"
+  ],
+  "knownPrototypeGaps": [
+    "Фильтр участников меняет только выбранный chip",
+    "Все обычные события открывают одну статичную карточку",
+    "Форма не создаёт реальный CalendarItem",
+    "Подбор не связан с данными голосования",
+    "Голоса не меняют агрегаты и победителя",
+    "Победитель всегда задан фикстурой",
+    "План не обновляется после добавления или бронирования",
+    "API, persistence, realtime и auth отсутствуют",
+    "Карта, билет, deeplink и join являются заглушками",
+    "Фото не загружаются и не сопоставляются"
+  ]
+}
