@@ -75,6 +75,8 @@ const timeline: CalendarEvent[] = [
   }
 ];
 
+const GAP_ID = "gap-00000000-0000-4000-8000-000000001001-00000000-0000-4000-8000-000000001002";
+
 function draft(gapId: string, overrides: Partial<ManualEventDraft> = {}): ManualEventDraft {
   return {
     gapId,
@@ -90,11 +92,11 @@ function draft(gapId: string, overrides: Partial<ManualEventDraft> = {}): Manual
 
 describe("manual event context and validation", () => {
   it("builds the form from the real trip timeline and members", () => {
-    const context = buildManualEventContext(trip, timeline, "demo-gap");
+    const context = buildManualEventContext(trip, timeline, GAP_ID);
 
     expect(context?.gap.tripId).toBe(trip.id);
     expect(context?.gap.id).toBe(
-      "gap-00000000-0000-4000-8000-000000001001-00000000-0000-4000-8000-000000001002"
+      GAP_ID
     );
     expect(context?.gap.nextEventTitle).toBe("Обязательный ужин");
     expect(context?.participants.map(({ displayName }) => displayName)).toEqual(["Никита", "Анна"]);
@@ -102,7 +104,7 @@ describe("manual event context and validation", () => {
   });
 
   it("accepts a direct event inside the trusted gap", () => {
-    const context = buildManualEventContext(trip, timeline, "demo-gap")!;
+    const context = buildManualEventContext(trip, timeline, GAP_ID)!;
     const result = validateManualEventDraft(context, draft(context.gap.id), trip.ownerId);
 
     expect(result.ok).toBe(true);
@@ -110,7 +112,7 @@ describe("manual event context and validation", () => {
   });
 
   it("rejects participants outside the trip", () => {
-    const context = buildManualEventContext(trip, timeline, "demo-gap")!;
+    const context = buildManualEventContext(trip, timeline, GAP_ID)!;
     const result = validateManualEventDraft(
       context,
       draft(context.gap.id, { participantIds: ["00000000-0000-4000-8000-000000009999"] }),
@@ -122,7 +124,7 @@ describe("manual event context and validation", () => {
   });
 
   it("rejects an event outside the server-derived gap", () => {
-    const context = buildManualEventContext(trip, timeline, "demo-gap")!;
+    const context = buildManualEventContext(trip, timeline, GAP_ID)!;
     const result = validateManualEventDraft(
       context,
       draft(context.gap.id, { endsAt: "2026-09-12T18:30" }),
@@ -134,7 +136,7 @@ describe("manual event context and validation", () => {
   });
 
   it("rejects a spoofed current participant", () => {
-    const context = buildManualEventContext(trip, timeline, "demo-gap")!;
+    const context = buildManualEventContext(trip, timeline, GAP_ID)!;
     const result = validateManualEventDraft(
       context,
       draft(context.gap.id),
@@ -146,7 +148,7 @@ describe("manual event context and validation", () => {
   });
 
   it("rejects a trip member who is not available in this gap", () => {
-    const context = buildManualEventContext(trip, timeline, "demo-gap")!;
+    const context = buildManualEventContext(trip, timeline, GAP_ID)!;
     context.gap.participantIds = [trip.ownerId];
     const result = validateManualEventDraft(
       context,
@@ -159,7 +161,7 @@ describe("manual event context and validation", () => {
   });
 
   it("blocks a per-participant overlap", () => {
-    const context = buildManualEventContext(trip, timeline, "demo-gap")!;
+    const context = buildManualEventContext(trip, timeline, GAP_ID)!;
     context.busyIntervals.push({
       eventId: "overlap",
       title: "Личная встреча Анны",
@@ -193,7 +195,11 @@ describe("manual event context and validation", () => {
       startsAt: new Date("2026-09-12T11:00:00+03:00"),
       endsAt: new Date("2026-09-12T13:00:00+03:00")
     };
-    const context = buildManualEventContext(trip, [...timeline, longOverlap], "demo-gap")!;
+    const context = buildManualEventContext(
+      trip,
+      [...timeline, longOverlap],
+      `gap-${longOverlap.id}-${timeline[2].id}`
+    )!;
 
     expect(context.gap.startsAt).toBe("2026-09-12T10:25:00.000Z");
     expect(context.gap.id).toContain(longOverlap.id);

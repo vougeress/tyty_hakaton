@@ -86,14 +86,20 @@ export function buildManualEventContext(
   gapId: string
 ): ManualEventContext | null {
   const preset = buildCalendarPreset(trip, timeline);
-  const gap = gapId === "demo-gap"
-    ? preset.gaps[0]
-    : preset.gaps.find((candidate) => candidate.id === gapId);
+  const gap = preset.gaps.find((candidate) => candidate.id === gapId);
   if (!gap) return null;
 
   const next = gap.nextRequiredItemId
     ? timeline.find((event) => event.id === gap.nextRequiredItemId)
     : undefined;
+  const previous = timeline
+    .filter((event) =>
+      event.type !== "poll" &&
+      event.type !== "draft" &&
+      event.status !== "cancelled" &&
+      event.endsAt.getTime() <= new Date(gap.startsAt).getTime()
+    )
+    .sort((left, right) => right.endsAt.getTime() - left.endsAt.getTime())[0];
   const nextRequiredAt = next?.startsAt ?? new Date(gap.endsAt);
   const initial = initialRange(new Date(gap.startsAt), new Date(gap.endsAt));
   const returnBufferMinutes = Math.round(
@@ -127,7 +133,11 @@ export function buildManualEventContext(
       endsAt: gap.endsAt,
       dateLabel: dateLabel(new Date(gap.startsAt), new Date(gap.endsAt), trip.timezone),
       participantIds: gap.participantIds,
+      previousEventTitle: previous?.title ?? "предыдущего события",
+      previousLocationName: previous?.location?.name ?? trip.title,
+      previousEndsAt: (previous?.endsAt ?? new Date(gap.startsAt)).toISOString(),
       nextEventTitle: next?.title ?? "следующего события",
+      nextLocationName: next?.location?.name ?? trip.title,
       nextRequiredAt: nextRequiredAt.toISOString(),
       bufferToNextEventMinutes: Math.round(
         (nextRequiredAt.getTime() - new Date(gap.endsAt).getTime()) / MINUTE_MS

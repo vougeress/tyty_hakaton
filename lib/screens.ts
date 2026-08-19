@@ -33,7 +33,7 @@ export type ScreenId =
   | "memories";
 
 export const navItems = [
-  { id: "add", label: "Добавить", href: "/calendar/gaps/demo-gap/create", icon: Plus },
+  { id: "add", label: "Добавить", href: "/calendar", icon: Plus },
   { id: "calendar", label: "Календарь", href: "/calendar", icon: CalendarDays },
   { id: "memories", label: "Воспоминания", href: "/memories", icon: Camera }
 ];

@@ -7,6 +7,7 @@ export type AuditIssue = {
   description: string;
   meta: string;
   conflictId?: string;
+  relatedEvents?: Array<{ id: string; title: string }>;
 };
 
 export type SuggestedTransfer = {
@@ -14,6 +15,8 @@ export type SuggestedTransfer = {
   title: string;
   description: string;
   meta: string;
+  fromEventId?: string;
+  toEventId?: string;
 };
 
 export type DraftTransferRecord = SuggestedTransfer & {
@@ -35,6 +38,7 @@ export type AuditReport = {
   issueCount: number;
   conflictCount: number;
   suggestedTransfers: SuggestedTransfer[];
+  draftedTransferIds?: string[];
   issues: AuditIssue[];
 };
 

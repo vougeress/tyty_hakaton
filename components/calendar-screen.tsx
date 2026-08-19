@@ -98,7 +98,7 @@ function getEntryAriaLabel(entry: CalendarItem, timezone: string) {
   return `${entry.title}, ${start}${status}`;
 }
 
-export function CalendarScreen({ preset }: { preset: CalendarPreset }) {
+export function CalendarScreen({ preset, mockMode = false }: { preset: CalendarPreset; mockMode?: boolean }) {
   const router = useRouter();
   const [participantFilter, setParticipantFilter] = useState("all");
   const [isChecking, setIsChecking] = useState(false);
@@ -117,10 +117,11 @@ export function CalendarScreen({ preset }: { preset: CalendarPreset }) {
           : participant.shortName
     }))
   ];
+  const addHref = preset.gaps[0]?.href;
 
   useEffect(() => {
-    setManualItems(readManualCalendarItems());
-  }, []);
+    setManualItems(mockMode ? readManualCalendarItems() : []);
+  }, [mockMode]);
 
   const positionedEntries = useMemo(() => {
     const manualItemIds = new Set(manualItems.map(({ id }) => id));
@@ -238,7 +239,11 @@ export function CalendarScreen({ preset }: { preset: CalendarPreset }) {
             <div className="absolute inset-x-12 top-24 z-[3] rounded-[8px] border border-dashed border-primary/35 bg-white/95 p-4 text-center shadow-card">
               <p className="text-sm font-semibold">План пока пуст</p>
               <p className="mt-1 text-xs text-ink/58">Добавьте первое событие поездки.</p>
-              <Link href="/calendar/gaps/demo-gap/manual" className="mt-3 inline-flex h-9 items-center rounded-[8px] bg-primary px-3 text-xs font-semibold text-white">Добавить событие</Link>
+              {addHref ? (
+                <Link href={addHref.replace(/\/create$/, "/manual")} className="mt-3 inline-flex h-9 items-center rounded-[8px] bg-primary px-3 text-xs font-semibold text-white">Добавить событие</Link>
+              ) : (
+                <p className="mt-3 text-xs text-ink/50">Добавьте опорные события поездки, чтобы появилось свободное окно.</p>
+              )}
             </div>
           )}
           {[9, 12, 15, 18, 21].map((hour) => (
@@ -308,7 +313,7 @@ export function CalendarScreen({ preset }: { preset: CalendarPreset }) {
       </div>
 
       <nav className="absolute bottom-0 left-1/2 z-10 grid h-[76px] w-full max-w-[430px] -translate-x-1/2 grid-cols-3 items-end border-t border-border bg-white/95 px-6 pb-2.5 pt-1.5 backdrop-blur" aria-label="Основная навигация">
-        <Link href="/calendar/gaps/demo-gap/create" className="grid min-h-[52px] place-items-center content-center gap-1 text-[11px] text-ink/58">
+        <Link href={addHref ?? "/calendar"} aria-disabled={!addHref} className="grid min-h-[52px] place-items-center content-center gap-1 text-[11px] text-ink/58">
           <Plus aria-hidden="true" size={20} />
           Добавить
         </Link>

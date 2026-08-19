@@ -113,7 +113,6 @@ export async function confirmWinnerBookingAction(
     const poll = await createPollRepository().confirmWinnerBooking({
       pollId: text(formData, "pollId"),
       participantId: text(formData, "participantId"),
-      bookingUrl: text(formData, "bookingUrl") || undefined,
       idempotencyKey: text(formData, "idempotencyKey") || undefined
     });
     revalidatePath(`/winners/${poll.winnerCandidateId}`);

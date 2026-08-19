@@ -242,7 +242,16 @@ export function ManualEventScreen({ context }: { context: ManualEventContext }) 
                   "bg-[#fff3cf] text-[#775913]"
             )}>
               <CheckCircle2 aria-hidden="true" className="shrink-0" size={19} />
-              <p><strong>{logistics.status === "blocking" ? "Конфликт расписания." : "Расписание проверено."}</strong> {logistics.message}</p>
+              <div>
+                <p><strong>{logistics.status === "blocking" ? "Конфликт расписания." : "Логистика проверена."}</strong> {logistics.message}</p>
+                {logistics.outbound && logistics.inbound && (
+                  <ul className="mt-2 space-y-1 text-[11px]">
+                    <li>От «{context.gap.previousEventTitle}» → «{locationName}»: {logistics.outbound.minutes} мин</li>
+                    <li>От «{locationName}» → «{context.gap.nextEventTitle}»: {logistics.inbound.minutes} мин</li>
+                    <li>Обязательный запас: {logistics.returnBufferMinutes} мин</li>
+                  </ul>
+                )}
+              </div>
             </div>
           )}
 

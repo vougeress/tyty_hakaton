@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 
 export default async function CalendarPage() {
   if (process.env.E2E_MOCK_MODE === "1") {
-    return <CalendarScreen preset={await mockCalendarRepository.getCalendarPreset()} />;
+    return <CalendarScreen preset={await mockCalendarRepository.getCalendarPreset()} mockMode />;
   }
 
   const tripId = await getCurrentTripId();

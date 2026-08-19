@@ -67,7 +67,7 @@ export function WinnerBookingScreen({ initialPoll, participantIds }: { initialPo
     return (
       <main className="mx-auto grid min-h-dvh w-full max-w-[430px] place-content-center bg-page px-5 text-center text-ink">
         <p className="text-sm font-semibold">Победитель ещё не выбран</p>
-        <Link href="/polls/demo-poll" className="mt-3 text-sm font-semibold text-primary">Открыть голосование</Link>
+        <Link href={`/polls/${poll.id}`} className="mt-3 text-sm font-semibold text-primary">Открыть голосование</Link>
       </main>
     );
   }

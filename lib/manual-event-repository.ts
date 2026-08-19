@@ -12,7 +12,11 @@ export type ManualEventGap = {
   endsAt: string;
   dateLabel: string;
   participantIds: string[];
+  previousEventTitle: string;
+  previousLocationName: string;
+  previousEndsAt: string;
   nextEventTitle: string;
+  nextLocationName: string;
   nextRequiredAt: string;
   bufferToNextEventMinutes: number;
 };
@@ -49,7 +53,20 @@ export type ManualEventContext = {
     travelMinutes: number | null;
     returnBufferMinutes: number;
     message: string;
+    checkedAt?: string;
+    outbound?: ManualRouteLeg;
+    inbound?: ManualRouteLeg;
+    warnings?: string[];
   };
+};
+
+export type ManualRouteLeg = {
+  from: string;
+  to: string;
+  departureAt: string;
+  arrivalAt: string;
+  minutes: number;
+  mode: "live" | "mock";
 };
 
 export type ManualEventResult =
@@ -80,7 +97,11 @@ const contextFixture: ManualEventContext = {
     endsAt: "2026-09-12T18:10:00+03:00",
     dateLabel: "Сб, 12 сентября · 12:20–18:10",
     participantIds: ["nikita", "anna", "maria", "ilya"],
+    previousEventTitle: "Казанский кремль",
+    previousLocationName: "Казанский кремль",
+    previousEndsAt: "2026-09-12T11:55:00+03:00",
     nextEventTitle: "ужин",
+    nextLocationName: "Ресторан в центре Казани",
     nextRequiredAt: "2026-09-12T19:30:00+03:00",
     bufferToNextEventMinutes: 80
   },
