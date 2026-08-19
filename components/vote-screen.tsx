@@ -177,7 +177,7 @@ export function VoteScreen({ initialPoll, participantIds, ownerId }: { initialPo
   }
 
   return (
-    <main className="mx-auto min-h-dvh w-full max-w-[430px] bg-page text-ink shadow-shell sm:my-6 sm:min-h-[760px] sm:rounded-[28px]">
+    <main className="mx-auto min-h-dvh w-full max-w-[430px] bg-page text-ink shadow-shell sm:my-6 sm:min-h-[760px] sm:rounded-[28px]" data-preset-id="vote.active">
       <header className="bg-ink px-5 pb-5 pt-6 text-white">
         <div className="flex items-center justify-between gap-3">
           <p className="text-xs font-semibold text-white/62">Голосование</p>

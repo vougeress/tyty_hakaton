@@ -2,12 +2,15 @@ import { defineConfig } from "@playwright/test";
 
 export default defineConfig({
   testDir: "./tests/e2e",
-  fullyParallel: true,
+  snapshotPathTemplate: "{testDir}/{testFilePath}-snapshots/{arg}-{projectName}{ext}",
+  fullyParallel: false,
+  workers: 1,
   retries: process.env.CI ? 2 : 0,
   reporter: "line",
   use: {
     baseURL: "http://127.0.0.1:3110",
-    trace: "retain-on-failure"
+    trace: "retain-on-failure",
+    screenshot: "only-on-failure"
   },
   projects: [
     {

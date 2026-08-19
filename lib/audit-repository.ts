@@ -134,7 +134,7 @@ const issues: AuditIssue[] = [
     title: "Свияжск конфликтует с ужином",
     description: "Возвращение позже допустимого буфера",
     meta: "Открыть",
-    conflictId: "schedule-changed"
+    conflictId: "schedule-shift"
   }
 ];
 
