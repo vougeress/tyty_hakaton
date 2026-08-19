@@ -35,7 +35,7 @@ export const eventSource = pgEnum("event_source", [
   "external"
 ]);
 export const pollStatus = pgEnum("poll_status", ["active", "closed"]);
-export const voteValue = pgEnum("vote_value", ["yes", "no", "maybe"]);
+export const voteValue = pgEnum("vote_value", ["yes", "maybe", "veto"]);
 export const candidateBookingStatus = pgEnum("candidate_booking_status", [
   "idle",
   "available",

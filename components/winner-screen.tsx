@@ -190,7 +190,11 @@ export function WinnerScreen({ winner: initialWinner, recheckedWinner }: WinnerS
           </div>
         </section>
 
-        {winner.recheckStatus === "stale" ? (
+        {winner.recheckStatus === "stale" && !recheckedWinner ? (
+          <div className="rounded-[13px_13px_13px_5px] border border-border bg-white p-3 text-[12px] leading-[17px] text-ink/60">
+            Автоматическая перепроверка этого реального варианта ещё не подключена. Оформление и подтверждение брони заблокированы, пока цена и места не проверены сервером.
+          </div>
+        ) : winner.recheckStatus === "stale" ? (
           <button
             type="button"
             onClick={recheck}

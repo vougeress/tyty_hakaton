@@ -12,8 +12,12 @@ type RouteContext = {
 export async function POST(request: Request, context: RouteContext) {
   try {
     const { pollId } = await context.params;
-    const body = await request.json();
-    const poll = await createPollRepository().confirmWinnerBooking({ ...body, pollId });
+    const body = await request.json() as { participantId: string; idempotencyKey?: string };
+    const poll = await createPollRepository().confirmWinnerBooking({
+      pollId,
+      participantId: body.participantId,
+      idempotencyKey: body.idempotencyKey
+    });
     return NextResponse.json({ poll });
   } catch (error) {
     if (error instanceof ZodError) {

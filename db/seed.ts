@@ -376,7 +376,7 @@ async function seed() {
           pollId: ids.poll,
           candidateId: ids.candidateSviyazhsk,
           participantId: ids.ilya,
-          value: "no"
+          value: "veto"
         }
       ])
       .onConflictDoUpdate({

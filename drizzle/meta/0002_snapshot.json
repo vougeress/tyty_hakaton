@@ -1,5 +1,5 @@
 {
-  "id": "bddfb336-b327-4aab-b792-9638bfb9fd65",
+  "id": "216849a2-969c-4366-8349-d47bfbd115c9",
   "prevId": "46699116-a71e-469f-bedd-ccb8ec00b547",
   "version": "7",
   "dialect": "postgresql",
@@ -48,56 +48,6 @@
         "price_per_person": {
           "name": "price_per_person",
           "type": "double precision",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "rechecked_price_per_person": {
-          "name": "rechecked_price_per_person",
-          "type": "double precision",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "available_seats": {
-          "name": "available_seats",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "booking_url": {
-          "name": "booking_url",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "booking_status": {
-          "name": "booking_status",
-          "type": "candidate_booking_status",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'idle'"
-        },
-        "booking_failure_reason": {
-          "name": "booking_failure_reason",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "last_checked_at": {
-          "name": "last_checked_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "booking_confirmed_at": {
-          "name": "booking_confirmed_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "booking_confirmed_by_participant_id": {
-          "name": "booking_confirmed_by_participant_id",
-          "type": "uuid",
           "primaryKey": false,
           "notNull": false
         },
@@ -191,19 +141,6 @@
             "id"
           ],
           "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "candidates_booking_confirmed_by_participant_id_participants_id_fk": {
-          "name": "candidates_booking_confirmed_by_participant_id_participants_id_fk",
-          "tableFrom": "candidates",
-          "tableTo": "participants",
-          "columnsFrom": [
-            "booking_confirmed_by_participant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
           "onUpdate": "no action"
         },
         "candidates_created_by_participant_id_participants_id_fk": {
@@ -1045,18 +982,6 @@
     }
   },
   "enums": {
-    "public.candidate_booking_status": {
-      "name": "candidate_booking_status",
-      "schema": "public",
-      "values": [
-        "idle",
-        "available",
-        "price_changed",
-        "sold_out",
-        "booking_failed",
-        "confirmed"
-      ]
-    },
     "public.event_source": {
       "name": "event_source",
       "schema": "public",
@@ -1118,8 +1043,8 @@
       "schema": "public",
       "values": [
         "yes",
-        "no",
-        "maybe"
+        "maybe",
+        "veto"
       ]
     }
   },

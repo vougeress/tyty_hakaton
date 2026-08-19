@@ -26,6 +26,7 @@ export const travelSearchInputSchema = z.object({
   gapId: z.string().min(1).optional(),
   origin: z.string().trim().min(1).max(160),
   destination: z.string().trim().min(1).max(160),
+  timezone: z.string().trim().min(1).default("UTC"),
   startsAt: z.coerce.date(),
   endsAt: z.coerce.date(),
   travelers: z.coerce.number().int().min(1).max(12).default(1),

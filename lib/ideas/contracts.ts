@@ -30,6 +30,7 @@ export type IdeaCandidate = {
 
 export type IdeasPreset = {
   id: "ideas.two_selected";
+  tripId: string;
   gapId: string;
   dateLabel: string;
   timeLabel: string;
@@ -38,6 +39,17 @@ export type IdeasPreset = {
   filters: string[];
   selectedCandidateIds: string[];
   candidates: IdeaCandidate[];
+};
+
+export type IdeasSearchState = {
+  status: "idle" | "success" | "error";
+  message?: string;
+  destination: string;
+  candidates: IdeaCandidate[];
+  checkedAt?: string;
+  mode?: "live" | "mock";
+  cache?: "hit" | "miss";
+  warnings: string[];
 };
 
 export interface IdeasRepository {

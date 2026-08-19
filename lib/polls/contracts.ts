@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const voteValueSchema = z.enum(["yes", "no", "maybe"]);
+export const voteValueSchema = z.enum(["yes", "maybe", "veto"]);
 
 const candidateInputSchema = z.object({
   title: z.string().trim().min(1).max(120),
@@ -41,6 +41,11 @@ export const closePollInputSchema = z.object({
   idempotencyKey: z.string().trim().min(8).max(120).optional()
 });
 
+export const shortRevoteInputSchema = z.object({
+  pollId: z.uuid(),
+  participantId: z.uuid()
+});
+
 export const bookingStatusSchema = z.enum([
   "idle",
   "available",
@@ -60,7 +65,6 @@ export const recheckWinnerInputSchema = z.object({
 export const confirmWinnerBookingInputSchema = z.object({
   pollId: z.uuid(),
   participantId: z.uuid(),
-  bookingUrl: z.url().optional(),
   idempotencyKey: z.string().trim().min(8).max(120).optional()
 });
 
@@ -70,6 +74,7 @@ export type CreatePollInput = z.infer<typeof createPollInputSchema>;
 export type AddCandidateInput = z.infer<typeof addCandidateInputSchema>;
 export type SubmitVoteInput = z.infer<typeof submitVoteInputSchema>;
 export type ClosePollInput = z.infer<typeof closePollInputSchema>;
+export type ShortRevoteInput = z.infer<typeof shortRevoteInputSchema>;
 export type RecheckWinnerInput = z.infer<typeof recheckWinnerInputSchema>;
 export type ConfirmWinnerBookingInput = z.infer<typeof confirmWinnerBookingInputSchema>;
 

@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import { CheckCircle2, ExternalLink, RefreshCw, X } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
-import { PARTICIPANT_STORAGE_KEY } from "@/lib/trips/constants";
 import type { PollCandidateSnapshot, PollSnapshot } from "@/lib/polls";
+import { useCurrentParticipantId } from "@/lib/use-current-participant";
 import { cn } from "@/lib/utils";
 
 const statusLabel: Record<PollCandidateSnapshot["bookingStatus"], string> = {
@@ -17,20 +17,14 @@ const statusLabel: Record<PollCandidateSnapshot["bookingStatus"], string> = {
   confirmed: "Бронирование подтверждено"
 };
 
-export function WinnerBookingScreen({ initialPoll }: { initialPoll: PollSnapshot }) {
+export function WinnerBookingScreen({ initialPoll, participantIds }: { initialPoll: PollSnapshot; participantIds: string[] }) {
   const [poll, setPoll] = useState(initialPoll);
-  const [participantId, setParticipantId] = useState<string | null>(null);
+  const participantId = useCurrentParticipantId(participantIds, undefined, false);
   const [pending, setPending] = useState<"recheck" | "confirm" | null>(null);
   const winner = useMemo(
     () => poll.candidates.find((candidate) => candidate.id === poll.winnerCandidateId) ?? null,
     [poll]
   );
-
-  useEffect(() => {
-    const stored = window.localStorage.getItem(PARTICIPANT_STORAGE_KEY);
-    const fallback = poll.candidates.flatMap((candidate) => candidate.responses).at(0)?.participantId;
-    setParticipantId(stored || fallback || null);
-  }, [poll.candidates]);
 
   async function recheck() {
     if (!participantId) return;
@@ -58,7 +52,6 @@ export function WinnerBookingScreen({ initialPoll }: { initialPoll: PollSnapshot
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           participantId,
-          bookingUrl: winner.bookingUrl,
           idempotencyKey: crypto.randomUUID()
         })
       });
@@ -80,10 +73,11 @@ export function WinnerBookingScreen({ initialPoll }: { initialPoll: PollSnapshot
   }
 
   const canOpenBooking = winner.bookingUrl && !["sold_out", "booking_failed"].includes(winner.bookingStatus);
+  const canConfirmBooking = Boolean(winner.bookingUrl) && ["available", "price_changed"].includes(winner.bookingStatus);
   const price = winner.recheckedPricePerPerson ?? winner.pricePerPerson;
 
   return (
-    <main className="mx-auto min-h-dvh w-full max-w-[430px] bg-page text-ink shadow-shell sm:my-6 sm:min-h-[760px] sm:rounded-[28px]">
+    <main className="mx-auto min-h-dvh w-full max-w-[430px] bg-page text-ink shadow-shell sm:my-6 sm:min-h-[760px] sm:rounded-[28px]" data-preset-id="winner.rechecked" data-recheck-status={winner.bookingStatus}>
       <header className="bg-ink px-5 pb-5 pt-6 text-white">
         <div className="flex items-center justify-between gap-3">
           <p className="text-xs font-semibold text-white/62">Победитель</p>
@@ -149,7 +143,7 @@ export function WinnerBookingScreen({ initialPoll }: { initialPoll: PollSnapshot
           )}
           <button
             type="button"
-            disabled={!participantId || !winner.bookingUrl || pending !== null || winner.bookingStatus === "confirmed"}
+            disabled={!participantId || !canConfirmBooking || pending !== null}
             onClick={confirmBooking}
             className="h-11 rounded-[8px] bg-accent text-sm font-semibold text-ink disabled:opacity-55"
           >

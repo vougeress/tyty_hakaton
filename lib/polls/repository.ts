@@ -1,11 +1,12 @@
 import "server-only";
 
-import { and, asc, eq, gt, sql } from "drizzle-orm";
+import { and, asc, eq, gt, inArray, sql } from "drizzle-orm";
 
 import { getDatabase } from "@/db/client";
 import {
-  events,
   candidates,
+  eventParticipants,
+  events,
   participants,
   polls,
   tripMembers,
@@ -17,6 +18,7 @@ import {
   closePollInputSchema,
   confirmWinnerBookingInputSchema,
   createPollInputSchema,
+  shortRevoteInputSchema,
   recheckWinnerInputSchema,
   submitVoteInputSchema,
   type AddCandidateInput,
@@ -26,13 +28,14 @@ import {
   type ConfirmWinnerBookingInput,
   type CreatePollInput,
   type PollSnapshot,
-  type RecheckWinnerInput,
+  type ShortRevoteInput,
   type SubmitVoteInput,
   type VoteValue
 } from "@/lib/polls/contracts";
+import { chooseWinner } from "@/lib/polls/decision";
 import { createTravelSearchService, travelOptionSchema, type TravelOption } from "@/lib/travel-search";
 
-const emptyTally: CandidateTally = { yes: 0, no: 0, maybe: 0 };
+const emptyTally: CandidateTally = { yes: 0, maybe: 0, veto: 0 };
 
 export class PollRepository {
   async createPoll(input: CreatePollInput): Promise<PollSnapshot> {
@@ -56,7 +59,18 @@ export class PollRepository {
           createdByParticipantId: validated.createdByParticipantId,
           idempotencyKey: validated.idempotencyKey
         })
+        .onConflictDoNothing({ target: polls.idempotencyKey })
         .returning();
+
+      if (!poll) {
+        const [concurrent] = await tx
+          .select({ id: polls.id })
+          .from(polls)
+          .where(eq(polls.idempotencyKey, validated.idempotencyKey!))
+          .limit(1);
+        if (!concurrent) throw new Error("Poll idempotency conflict");
+        return this.getPoll(concurrent.id, tx);
+      }
 
       await tx.insert(candidates).values(validated.candidates.map((candidate, index) => ({
         pollId: poll.id,
@@ -158,7 +172,7 @@ export class PollRepository {
 
     return getDatabase().transaction(async (tx) => {
       const poll = await getPollRow(validated.pollId, tx);
-      await assertTripMember(poll.tripId, validated.participantId, tx);
+      await assertTripOwner(poll.tripId, validated.participantId, tx);
       if (poll.status === "closed") return this.getPoll(poll.id, tx);
 
       const snapshot = await this.getPoll(poll.id, tx);
@@ -179,6 +193,58 @@ export class PollRepository {
       await syncPollCalendarEvent(poll.id, decision.winnerTitle, tx);
 
       return this.getPoll(poll.id, tx);
+    });
+  }
+
+  async createShortRevote(input: ShortRevoteInput): Promise<PollSnapshot> {
+    const validated = shortRevoteInputSchema.parse(input);
+    const idempotencyKey = `revote:${validated.pollId}`;
+
+    return getDatabase().transaction(async (tx) => {
+      const sourcePoll = await getPollRow(validated.pollId, tx);
+      await assertTripOwner(sourcePoll.tripId, validated.participantId, tx);
+      if (sourcePoll.status !== "closed" || sourcePoll.finalistCandidateIds.length === 0) {
+        throw new Error("Poll has no tied finalists");
+      }
+
+      const [created] = await tx
+        .insert(polls)
+        .values({
+          tripId: sourcePoll.tripId,
+          title: `${sourcePoll.title}: финальный выбор`,
+          closesAt: new Date(Date.now() + 5 * 60_000),
+          createdByParticipantId: validated.participantId,
+          idempotencyKey
+        })
+        .onConflictDoNothing({ target: polls.idempotencyKey })
+        .returning();
+
+      if (!created) {
+        const [existing] = await tx.select({ id: polls.id }).from(polls).where(eq(polls.idempotencyKey, idempotencyKey)).limit(1);
+        if (!existing) throw new Error("Revote idempotency conflict");
+        return this.getPoll(existing.id, tx);
+      }
+
+      const finalistRows = await tx
+        .select()
+        .from(candidates)
+        .where(inArray(candidates.id, sourcePoll.finalistCandidateIds))
+        .orderBy(asc(candidates.sortOrder));
+      if (finalistRows.length !== sourcePoll.finalistCandidateIds.length) throw new Error("Finalist not found");
+
+      await tx.insert(candidates).values(finalistRows.map((candidate, index) => ({
+        pollId: created.id,
+        title: candidate.title,
+        description: candidate.description,
+        travelOptionId: candidate.travelOptionId,
+        travelOption: candidate.travelOption,
+        pricePerPerson: candidate.pricePerPerson,
+        source: candidate.source,
+        sortOrder: index,
+        createdByParticipantId: candidate.createdByParticipantId
+      })));
+
+      return this.getPoll(created.id, tx);
     });
   }
 
@@ -235,8 +301,13 @@ export class PollRepository {
         .where(eq(candidates.id, poll.winnerCandidateId))
         .limit(1);
       if (!candidate) throw new Error("Winner candidate not found");
-
-      const bookingUrl = validated.bookingUrl ?? candidate.bookingUrl;
+      if (candidate.bookingStatus !== "available" && candidate.bookingStatus !== "price_changed") {
+        throw new Error("Winner must be rechecked before booking confirmation");
+      }
+      if (!candidate.lastCheckedAt || Date.now() - candidate.lastCheckedAt.getTime() > 5 * 60_000) {
+        throw new Error("Winner recheck is stale");
+      }
+      const bookingUrl = safeHttpsUrl(candidate.bookingUrl);
       if (!bookingUrl) throw new Error("Booking deeplink is missing");
 
       await tx
@@ -253,6 +324,7 @@ export class PollRepository {
 
       await touchPoll(poll.id, tx);
       await syncPollCalendarEvent(poll.id, candidate.title, tx);
+      await syncConfirmedBookingCalendarEvent(poll, candidate, tx);
 
       return this.getPoll(poll.id, tx);
     });
@@ -366,33 +438,6 @@ async function buildPollSnapshot(
   };
 }
 
-function chooseWinner(snapshot: PollSnapshot) {
-  const eligible = snapshot.candidates.filter((candidate) => candidate.tally.no === 0);
-  if (eligible.length === 0) {
-    return { winnerCandidateId: null, winnerTitle: null, finalistCandidateIds: [] };
-  }
-
-  const ranked = [...eligible].sort((left, right) =>
-    right.tally.yes - left.tally.yes
-    || right.tally.maybe - left.tally.maybe
-    || ((left.pricePerPerson ?? 0) - (right.pricePerPerson ?? 0))
-  );
-  const best = ranked[0];
-  const tied = ranked.filter((candidate) =>
-    candidate.tally.yes === best.tally.yes && candidate.tally.maybe === best.tally.maybe
-  );
-
-  if (tied.length === 1) {
-    return { winnerCandidateId: best.id, winnerTitle: best.title, finalistCandidateIds: [] };
-  }
-
-  return {
-    winnerCandidateId: null,
-    winnerTitle: null,
-    finalistCandidateIds: tied.slice(0, 2).map(({ id }) => id)
-  };
-}
-
 async function syncPollCalendarEvent(
   pollId: string,
   winnerTitle: string | null,
@@ -408,6 +453,51 @@ async function syncPollCalendarEvent(
     .where(and(eq(events.type, "poll"), eq(events.externalRef, pollId)));
 }
 
+async function syncConfirmedBookingCalendarEvent(
+  poll: typeof polls.$inferSelect,
+  candidate: typeof candidates.$inferSelect,
+  db: ReturnType<typeof getDatabase>
+) {
+  const option = travelOptionSchema.safeParse(candidate.travelOption);
+  if (!option.success) throw new Error("Winner travel option is missing");
+  const [existing] = await db.select({ id: events.id }).from(events).where(eq(events.externalRef, poll.id)).limit(1);
+  const values = {
+    tripId: poll.tripId,
+    type: "booking" as const,
+    status: "confirmed" as const,
+    title: candidate.title,
+    startsAt: new Date(option.data.departureAt),
+    endsAt: new Date(option.data.returnArrivalAt ?? option.data.arrivalAt),
+    locationName: option.data.destination,
+    source: eventSource(candidate.source),
+    externalRef: poll.id,
+    updatedAt: new Date()
+  };
+  const eventId = existing
+    ? (await db.update(events).set(values).where(eq(events.id, existing.id)).returning({ id: events.id }))[0]!.id
+    : (await db.insert(events).values(values).returning({ id: events.id }))[0]!.id;
+  const members = await db.select({ participantId: tripMembers.participantId }).from(tripMembers).where(eq(tripMembers.tripId, poll.tripId));
+  if (members.length > 0) {
+    await db.insert(eventParticipants).values(members.map(({ participantId }) => ({ eventId, participantId }))).onConflictDoNothing();
+  }
+}
+
+function safeHttpsUrl(value: string | null) {
+  if (!value) return null;
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" ? url.toString() : null;
+  } catch {
+    return null;
+  }
+}
+
+function eventSource(source: string): "manual" | "tutu" | "demo_catalog" | "external" {
+  if (source === "tutu" || source === "demo_catalog") return source;
+  if (source === "user_link") return "external";
+  return "manual";
+}
+
 async function assertTripMember(
   tripId: string,
   participantId: string,
@@ -421,6 +511,19 @@ async function assertTripMember(
     .where(and(eq(tripMembers.tripId, tripId), eq(tripMembers.participantId, participantId)))
     .limit(1);
   if (!member) throw new Error("Participant is not a trip member");
+}
+
+async function assertTripOwner(
+  tripId: string,
+  participantId: string,
+  db: ReturnType<typeof getDatabase>
+) {
+  const [trip] = await db
+    .select({ ownerId: trips.ownerId })
+    .from(trips)
+    .where(eq(trips.id, tripId))
+    .limit(1);
+  if (!trip || trip.ownerId !== participantId) throw new Error("Only the trip owner can close a poll");
 }
 
 async function getPollRow(id: string, db: ReturnType<typeof getDatabase>) {

@@ -7,6 +7,7 @@ export type {
   CreatePollInput,
   PollCandidateSnapshot,
   PollSnapshot,
+  ShortRevoteInput,
   RecheckWinnerInput,
   SubmitVoteInput,
   VoteValue
@@ -16,6 +17,7 @@ export {
   closePollInputSchema,
   confirmWinnerBookingInputSchema,
   createPollInputSchema,
+  shortRevoteInputSchema,
   recheckWinnerInputSchema,
   submitVoteInputSchema,
   voteValueSchema
