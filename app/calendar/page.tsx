@@ -1,5 +1,6 @@
-import { ScreenView } from "@/components/screen-view";
+import { CalendarScreen } from "@/components/calendar-screen";
+import { mockCalendarRepository } from "@/lib/calendar-repository";
 
 export default function CalendarPage() {
-  return <ScreenView screenId="calendar" />;
+  return <CalendarScreen preset={mockCalendarRepository.getCalendarPreset()} />;
 }

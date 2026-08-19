@@ -46,6 +46,15 @@ input {
   font: inherit;
 }
 
+@keyframes calendar-scan {
+  from {
+    transform: translateY(-82px);
+  }
+  to {
+    transform: translateY(554px);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
