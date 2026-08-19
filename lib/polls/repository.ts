@@ -4,8 +4,9 @@ import { and, asc, eq, gt, inArray, sql } from "drizzle-orm";
 
 import { getDatabase } from "@/db/client";
 import {
-  events,
   candidates,
+  eventParticipants,
+  events,
   participants,
   polls,
   tripMembers,
@@ -15,23 +16,42 @@ import {
 import {
   addCandidateInputSchema,
   closePollInputSchema,
+  confirmWinnerBookingInputSchema,
   createPollInputSchema,
+  shortRevoteInputSchema,
+  recheckWinnerInputSchema,
   submitVoteInputSchema,
   type AddCandidateInput,
+  type BookingStatus,
   type CandidateTally,
   type ClosePollInput,
+  type ConfirmWinnerBookingInput,
   type CreatePollInput,
   type PollSnapshot,
+  type RecheckWinnerInput,
+  type ShortRevoteInput,
   type SubmitVoteInput,
   type VoteValue
 } from "@/lib/polls/contracts";
+import { chooseWinner } from "@/lib/polls/decision";
+import { createTravelSearchService, travelOptionSchema, type TravelOption } from "@/lib/travel-search";
 
-const emptyTally: CandidateTally = { yes: 0, no: 0, maybe: 0 };
+const emptyTally: CandidateTally = { yes: 0, maybe: 0, veto: 0 };
+
+type PollCalendarEventInput = {
+  startsAt: Date;
+  endsAt: Date;
+  locationName: string;
+  participantIds: string[];
+};
 
 export class PollRepository {
-  async createPoll(input: CreatePollInput): Promise<PollSnapshot> {
+  async createPoll(input: CreatePollInput, calendarEvent?: PollCalendarEventInput): Promise<PollSnapshot> {
     const validated = createPollInputSchema.parse(input);
     if (validated.closesAt <= new Date()) throw new Error("Poll close time must be in the future");
+    if (calendarEvent && calendarEvent.endsAt <= calendarEvent.startsAt) {
+      throw new Error("Poll calendar event must end after it starts");
+    }
 
     const existing = validated.idempotencyKey
       ? await this.findByIdempotencyKey(validated.idempotencyKey)
@@ -50,7 +70,18 @@ export class PollRepository {
           createdByParticipantId: validated.createdByParticipantId,
           idempotencyKey: validated.idempotencyKey
         })
+        .onConflictDoNothing({ target: polls.idempotencyKey })
         .returning();
+
+      if (!poll) {
+        const [concurrent] = await tx
+          .select({ id: polls.id })
+          .from(polls)
+          .where(eq(polls.idempotencyKey, validated.idempotencyKey!))
+          .limit(1);
+        if (!concurrent) throw new Error("Poll idempotency conflict");
+        return this.getPoll(concurrent.id, tx);
+      }
 
       await tx.insert(candidates).values(validated.candidates.map((candidate, index) => ({
         pollId: poll.id,
@@ -63,6 +94,10 @@ export class PollRepository {
         sortOrder: index,
         createdByParticipantId: validated.createdByParticipantId
       })));
+
+      if (calendarEvent) {
+        await ensurePollCalendarEvent(poll.id, poll.tripId, poll.title, calendarEvent, tx);
+      }
 
       return this.getPoll(poll.id, tx);
     });
@@ -152,7 +187,7 @@ export class PollRepository {
 
     return getDatabase().transaction(async (tx) => {
       const poll = await getPollRow(validated.pollId, tx);
-      await assertTripMember(poll.tripId, validated.participantId, tx);
+      await assertPollManager(poll, validated.participantId, tx);
       if (poll.status === "closed") return this.getPoll(poll.id, tx);
 
       const snapshot = await this.getPoll(poll.id, tx);
@@ -176,9 +211,152 @@ export class PollRepository {
     });
   }
 
+  async createShortRevote(input: ShortRevoteInput): Promise<PollSnapshot> {
+    const validated = shortRevoteInputSchema.parse(input);
+    const idempotencyKey = `revote:${validated.pollId}`;
+
+    return getDatabase().transaction(async (tx) => {
+      const sourcePoll = await getPollRow(validated.pollId, tx);
+      await assertTripOwner(sourcePoll.tripId, validated.participantId, tx);
+      if (sourcePoll.status !== "closed" || sourcePoll.finalistCandidateIds.length === 0) {
+        throw new Error("Poll has no tied finalists");
+      }
+
+      const [created] = await tx
+        .insert(polls)
+        .values({
+          tripId: sourcePoll.tripId,
+          title: `${sourcePoll.title}: финальный выбор`,
+          closesAt: new Date(Date.now() + 5 * 60_000),
+          createdByParticipantId: validated.participantId,
+          idempotencyKey
+        })
+        .onConflictDoNothing({ target: polls.idempotencyKey })
+        .returning();
+
+      if (!created) {
+        const [existing] = await tx.select({ id: polls.id }).from(polls).where(eq(polls.idempotencyKey, idempotencyKey)).limit(1);
+        if (!existing) throw new Error("Revote idempotency conflict");
+        return this.getPoll(existing.id, tx);
+      }
+
+      const finalistRows = await tx
+        .select()
+        .from(candidates)
+        .where(inArray(candidates.id, sourcePoll.finalistCandidateIds))
+        .orderBy(asc(candidates.sortOrder));
+      if (finalistRows.length !== sourcePoll.finalistCandidateIds.length) throw new Error("Finalist not found");
+
+      await tx.insert(candidates).values(finalistRows.map((candidate, index) => ({
+        pollId: created.id,
+        title: candidate.title,
+        description: candidate.description,
+        travelOptionId: candidate.travelOptionId,
+        travelOption: candidate.travelOption,
+        pricePerPerson: candidate.pricePerPerson,
+        source: candidate.source,
+        sortOrder: index,
+        createdByParticipantId: candidate.createdByParticipantId
+      })));
+
+      return this.getPoll(created.id, tx);
+    });
+  }
+
+  async recheckWinner(input: RecheckWinnerInput): Promise<PollSnapshot> {
+    const validated = recheckWinnerInputSchema.parse(input);
+
+    const poll = await this.getPoll(validated.pollId);
+    await assertTripMember(poll.tripId, validated.participantId, getDatabase());
+    if (poll.status !== "closed" || !poll.winnerCandidateId) throw new Error("Poll has no winner");
+
+    const [candidate] = await getDatabase()
+      .select()
+      .from(candidates)
+      .where(eq(candidates.id, poll.winnerCandidateId))
+      .limit(1);
+    if (!candidate) throw new Error("Winner candidate not found");
+    if (candidate.bookingStatus === "confirmed") return poll;
+
+    const checkedAt = new Date();
+    const result = await recheckCandidate(candidate, poll.participantCount, validated.mode);
+
+    await getDatabase().transaction(async (tx) => {
+      await tx
+        .update(candidates)
+        .set({
+          bookingStatus: result.status,
+          bookingFailureReason: result.failureReason,
+          recheckedPricePerPerson: result.pricePerPerson,
+          availableSeats: result.availableSeats,
+          bookingUrl: result.bookingUrl,
+          bookingConfirmedAt: null,
+          bookingConfirmedByParticipantId: null,
+          lastCheckedAt: checkedAt,
+          updatedAt: checkedAt
+        })
+        .where(eq(candidates.id, candidate.id));
+      await touchPoll(poll.id, tx);
+    });
+
+    return this.getPoll(poll.id);
+  }
+
+  async confirmWinnerBooking(input: ConfirmWinnerBookingInput): Promise<PollSnapshot> {
+    const validated = confirmWinnerBookingInputSchema.parse(input);
+
+    return getDatabase().transaction(async (tx) => {
+      const poll = await getPollRow(validated.pollId, tx);
+      await assertTripMember(poll.tripId, validated.participantId, tx);
+      if (poll.status !== "closed" || !poll.winnerCandidateId) throw new Error("Poll has no winner");
+
+      const [candidate] = await tx
+        .select()
+        .from(candidates)
+        .where(eq(candidates.id, poll.winnerCandidateId))
+        .limit(1);
+      if (!candidate) throw new Error("Winner candidate not found");
+      if (candidate.bookingStatus !== "available" && candidate.bookingStatus !== "price_changed") {
+        throw new Error("Winner must be rechecked before booking confirmation");
+      }
+      if (!candidate.lastCheckedAt || Date.now() - candidate.lastCheckedAt.getTime() > 5 * 60_000) {
+        throw new Error("Winner recheck is stale");
+      }
+      const bookingUrl = safeHttpsUrl(candidate.bookingUrl);
+      if (!bookingUrl) throw new Error("Booking deeplink is missing");
+
+      await tx
+        .update(candidates)
+        .set({
+          bookingStatus: "confirmed",
+          bookingUrl,
+          bookingFailureReason: null,
+          bookingConfirmedAt: new Date(),
+          bookingConfirmedByParticipantId: validated.participantId,
+          updatedAt: new Date()
+        })
+        .where(eq(candidates.id, candidate.id));
+
+      await touchPoll(poll.id, tx);
+      await syncPollCalendarEvent(poll.id, candidate.title, tx);
+      await syncConfirmedBookingCalendarEvent(poll, candidate, tx);
+
+      return this.getPoll(poll.id, tx);
+    });
+  }
+
   async getPoll(id: string, db = getDatabase()): Promise<PollSnapshot> {
     const poll = await getPollRow(id, db);
     return buildPollSnapshot(poll, db);
+  }
+
+  async findByCandidateId(candidateId: string): Promise<PollSnapshot | null> {
+    const [candidate] = await getDatabase()
+      .select({ pollId: candidates.pollId })
+      .from(candidates)
+      .where(eq(candidates.id, candidateId))
+      .limit(1);
+    return candidate ? this.getPoll(candidate.pollId) : null;
   }
 
   async listTripPolls(tripId: string, updatedSince?: Date): Promise<PollSnapshot[]> {
@@ -231,6 +409,7 @@ async function buildPollSnapshot(
   return {
     id: poll.id,
     tripId: poll.tripId,
+    createdByParticipantId: poll.createdByParticipantId,
     title: poll.title,
     status: poll.status,
     closesAt: poll.closesAt.toISOString(),
@@ -254,6 +433,14 @@ async function buildPollSnapshot(
         description: candidate.description,
         travelOptionId: candidate.travelOptionId,
         pricePerPerson: candidate.pricePerPerson,
+        recheckedPricePerPerson: candidate.recheckedPricePerPerson,
+        availableSeats: candidate.availableSeats,
+        bookingUrl: candidate.bookingUrl,
+        bookingStatus: candidate.bookingStatus,
+        bookingFailureReason: candidate.bookingFailureReason,
+        lastCheckedAt: candidate.lastCheckedAt?.toISOString() ?? null,
+        bookingConfirmedAt: candidate.bookingConfirmedAt?.toISOString() ?? null,
+        bookingConfirmedByParticipantId: candidate.bookingConfirmedByParticipantId,
         source: candidate.source,
         createdByParticipantId: candidate.createdByParticipantId,
         tally,
@@ -264,33 +451,6 @@ async function buildPollSnapshot(
         }))
       };
     })
-  };
-}
-
-function chooseWinner(snapshot: PollSnapshot) {
-  const eligible = snapshot.candidates.filter((candidate) => candidate.tally.no === 0);
-  if (eligible.length === 0) {
-    return { winnerCandidateId: null, winnerTitle: null, finalistCandidateIds: [] };
-  }
-
-  const ranked = [...eligible].sort((left, right) =>
-    right.tally.yes - left.tally.yes
-    || right.tally.maybe - left.tally.maybe
-    || ((left.pricePerPerson ?? 0) - (right.pricePerPerson ?? 0))
-  );
-  const best = ranked[0];
-  const tied = ranked.filter((candidate) =>
-    candidate.tally.yes === best.tally.yes && candidate.tally.maybe === best.tally.maybe
-  );
-
-  if (tied.length === 1) {
-    return { winnerCandidateId: best.id, winnerTitle: best.title, finalistCandidateIds: [] };
-  }
-
-  return {
-    winnerCandidateId: null,
-    winnerTitle: null,
-    finalistCandidateIds: tied.slice(0, 2).map(({ id }) => id)
   };
 }
 
@@ -309,6 +469,98 @@ async function syncPollCalendarEvent(
     .where(and(eq(events.type, "poll"), eq(events.externalRef, pollId)));
 }
 
+async function ensurePollCalendarEvent(
+  pollId: string,
+  tripId: string,
+  pollTitle: string,
+  calendarEvent: PollCalendarEventInput,
+  db: ReturnType<typeof getDatabase>
+) {
+  const participantIds = [...new Set(calendarEvent.participantIds)];
+  const memberships = await db
+    .select({ participantId: tripMembers.participantId })
+    .from(tripMembers)
+    .where(and(
+      eq(tripMembers.tripId, tripId),
+      inArray(tripMembers.participantId, participantIds)
+    ));
+  if (memberships.length !== participantIds.length) {
+    throw new Error("Poll calendar participant is not a trip member");
+  }
+
+  const [inserted] = await db
+    .insert(events)
+    .values({
+      tripId,
+      type: "poll",
+      status: "active",
+      title: `Голосование: ${pollTitle}`,
+      startsAt: calendarEvent.startsAt,
+      endsAt: calendarEvent.endsAt,
+      locationName: calendarEvent.locationName,
+      source: "manual",
+      externalRef: pollId
+    })
+    .onConflictDoNothing({ target: [events.source, events.externalRef] })
+    .returning({ id: events.id });
+
+  const eventId = inserted?.id ?? (await db
+    .select({ id: events.id })
+    .from(events)
+    .where(and(eq(events.source, "manual"), eq(events.externalRef, pollId)))
+    .limit(1))[0]?.id;
+  if (!eventId) throw new Error("Poll calendar event could not be linked");
+
+  await db.insert(eventParticipants).values(
+    participantIds.map((participantId) => ({ eventId, participantId }))
+  ).onConflictDoNothing();
+}
+
+async function syncConfirmedBookingCalendarEvent(
+  poll: typeof polls.$inferSelect,
+  candidate: typeof candidates.$inferSelect,
+  db: ReturnType<typeof getDatabase>
+) {
+  const option = travelOptionSchema.safeParse(candidate.travelOption);
+  if (!option.success) throw new Error("Winner travel option is missing");
+  const [existing] = await db.select({ id: events.id }).from(events).where(eq(events.externalRef, poll.id)).limit(1);
+  const values = {
+    tripId: poll.tripId,
+    type: "booking" as const,
+    status: "confirmed" as const,
+    title: candidate.title,
+    startsAt: new Date(option.data.departureAt),
+    endsAt: new Date(option.data.returnArrivalAt ?? option.data.arrivalAt),
+    locationName: option.data.destination,
+    source: eventSource(candidate.source),
+    externalRef: poll.id,
+    updatedAt: new Date()
+  };
+  const eventId = existing
+    ? (await db.update(events).set(values).where(eq(events.id, existing.id)).returning({ id: events.id }))[0]!.id
+    : (await db.insert(events).values(values).returning({ id: events.id }))[0]!.id;
+  const members = await db.select({ participantId: tripMembers.participantId }).from(tripMembers).where(eq(tripMembers.tripId, poll.tripId));
+  if (members.length > 0) {
+    await db.insert(eventParticipants).values(members.map(({ participantId }) => ({ eventId, participantId }))).onConflictDoNothing();
+  }
+}
+
+function safeHttpsUrl(value: string | null) {
+  if (!value) return null;
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" ? url.toString() : null;
+  } catch {
+    return null;
+  }
+}
+
+function eventSource(source: string): "manual" | "tutu" | "demo_catalog" | "external" {
+  if (source === "tutu" || source === "demo_catalog") return source;
+  if (source === "user_link") return "external";
+  return "manual";
+}
+
 async function assertTripMember(
   tripId: string,
   participantId: string,
@@ -322,6 +574,31 @@ async function assertTripMember(
     .where(and(eq(tripMembers.tripId, tripId), eq(tripMembers.participantId, participantId)))
     .limit(1);
   if (!member) throw new Error("Participant is not a trip member");
+}
+
+async function assertTripOwner(
+  tripId: string,
+  participantId: string,
+  db: ReturnType<typeof getDatabase>
+) {
+  const [trip] = await db
+    .select({ ownerId: trips.ownerId })
+    .from(trips)
+    .where(eq(trips.id, tripId))
+    .limit(1);
+  if (!trip || trip.ownerId !== participantId) throw new Error("Only the trip owner can close a poll");
+}
+
+async function assertPollManager(
+  poll: typeof polls.$inferSelect,
+  participantId: string,
+  db: ReturnType<typeof getDatabase>
+) {
+  if (poll.createdByParticipantId === participantId) {
+    await assertTripMember(poll.tripId, participantId, db);
+    return;
+  }
+  await assertTripOwner(poll.tripId, participantId, db);
 }
 
 async function getPollRow(id: string, db: ReturnType<typeof getDatabase>) {
@@ -341,4 +618,90 @@ async function touchPoll(pollId: string, db: ReturnType<typeof getDatabase>) {
     .update(polls)
     .set({ version: sql`${polls.version} + 1`, updatedAt: new Date() })
     .where(eq(polls.id, pollId));
+}
+
+async function recheckCandidate(
+  candidate: typeof candidates.$inferSelect,
+  travelers: number,
+  mode: "auto" | "mock" | "live"
+): Promise<{
+  status: BookingStatus;
+  failureReason: string | null;
+  pricePerPerson: number | null;
+  availableSeats: number | null;
+  bookingUrl: string | null;
+}> {
+  const original = travelOptionSchema.safeParse(candidate.travelOption);
+  if (!original.success) {
+    return {
+      status: candidate.bookingUrl ? "available" : "booking_failed",
+      failureReason: candidate.bookingUrl ? null : "Нет исходного TravelOption для повторной проверки",
+      pricePerPerson: candidate.pricePerPerson,
+      availableSeats: candidate.availableSeats,
+      bookingUrl: candidate.bookingUrl
+    };
+  }
+
+  try {
+    const option = original.data;
+    const result = await createTravelSearchService().search({
+      origin: option.origin,
+      destination: option.destination,
+      startsAt: option.departureAt,
+      endsAt: option.returnArrivalAt ?? option.arrivalAt,
+      travelers,
+      types: [option.type],
+      mode
+    });
+    const refreshed = findMatchingOption(option, result.options);
+    if (!refreshed) {
+      return {
+        status: "sold_out",
+        failureReason: "Tutu не вернул победивший вариант при повторной проверке",
+        pricePerPerson: candidate.pricePerPerson,
+        availableSeats: 0,
+        bookingUrl: option.bookingUrl ?? candidate.bookingUrl
+      };
+    }
+
+    if (refreshed.availableSeats !== undefined && refreshed.availableSeats < travelers) {
+      return {
+        status: "sold_out",
+        failureReason: `Доступно мест: ${refreshed.availableSeats}`,
+        pricePerPerson: refreshed.pricePerPerson,
+        availableSeats: refreshed.availableSeats,
+        bookingUrl: refreshed.bookingUrl ?? option.bookingUrl ?? candidate.bookingUrl
+      };
+    }
+
+    const oldPrice = candidate.pricePerPerson ?? option.pricePerPerson;
+    const status: BookingStatus = Math.abs(refreshed.pricePerPerson - oldPrice) > 0.01
+      ? "price_changed"
+      : "available";
+    return {
+      status,
+      failureReason: null,
+      pricePerPerson: refreshed.pricePerPerson,
+      availableSeats: refreshed.availableSeats ?? null,
+      bookingUrl: refreshed.bookingUrl ?? option.bookingUrl ?? candidate.bookingUrl
+    };
+  } catch (error) {
+    return {
+      status: "booking_failed",
+      failureReason: error instanceof Error ? error.message : "Повторная проверка не удалась",
+      pricePerPerson: candidate.pricePerPerson,
+      availableSeats: candidate.availableSeats,
+      bookingUrl: candidate.bookingUrl
+    };
+  }
+}
+
+function findMatchingOption(original: TravelOption, options: TravelOption[]) {
+  return options.find((option) => option.id === original.id)
+    ?? options.find((option) => option.bookingUrl && option.bookingUrl === original.bookingUrl)
+    ?? options.find((option) =>
+      option.type === original.type
+      && option.origin === original.origin
+      && option.destination === original.destination
+    );
 }

@@ -97,6 +97,10 @@ export function ManualEventScreen({ context }: { context: ManualEventContext }) 
         setSubmitError(result.message);
         return;
       }
+      if (result.kind === "poll") {
+        router.push(result.href);
+        return;
+      }
       setCreatedResult(result);
     } catch {
       setSubmitError("Не удалось сохранить событие. Попробуйте ещё раз.");
@@ -225,7 +229,7 @@ export function ManualEventScreen({ context }: { context: ManualEventContext }) 
             </div>
             {onlyMe && <p className="mt-1.5 text-[11px] text-ink/50">Личное событие добавляется сразу в план без голосования.</p>}
             {effectiveMode === "vote" && !onlyMe && (
-              <p className="mt-1.5 text-[11px] text-ink/50">Серверное голосование подключается. Прямое добавление уже сохраняется в общий план.</p>
+              <p className="mt-1.5 text-[11px] text-ink/50">Создадим голосование и добавим его в выбранное окно общего плана.</p>
             )}
           </div>
 
@@ -242,7 +246,16 @@ export function ManualEventScreen({ context }: { context: ManualEventContext }) 
                   "bg-[#fff3cf] text-[#775913]"
             )}>
               <CheckCircle2 aria-hidden="true" className="shrink-0" size={19} />
-              <p><strong>{logistics.status === "blocking" ? "Конфликт расписания." : "Расписание проверено."}</strong> {logistics.message}</p>
+              <div>
+                <p><strong>{logistics.status === "blocking" ? "Конфликт расписания." : "Логистика проверена."}</strong> {logistics.message}</p>
+                {logistics.outbound && logistics.inbound && (
+                  <ul className="mt-2 space-y-1 text-[11px]">
+                    <li>От «{context.gap.previousEventTitle}» → «{locationName}»: {logistics.outbound.minutes} мин</li>
+                    <li>От «{locationName}» → «{context.gap.nextEventTitle}»: {logistics.inbound.minutes} мин</li>
+                    <li>Обязательный запас: {logistics.returnBufferMinutes} мин</li>
+                  </ul>
+                )}
+              </div>
             </div>
           )}
 

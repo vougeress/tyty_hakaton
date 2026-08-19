@@ -40,6 +40,52 @@ const ids = {
 
 const participantIds = [ids.nikita, ids.anna, ids.maria, ids.ilya];
 
+const demoTravelOptions = {
+  innopolis: {
+    id: "demo-innopolis-bus",
+    type: "bus",
+    origin: "Казань",
+    destination: "Иннополис",
+    departureAt: "2026-09-12T12:40:00.000Z",
+    arrivalAt: "2026-09-12T14:00:00.000Z",
+    returnDepartureAt: "2026-09-12T16:15:00.000Z",
+    returnArrivalAt: "2026-09-12T17:22:00.000Z",
+    pricePerPerson: 790,
+    availableSeats: 6,
+    bookingUrl: "https://www.tutu.ru/",
+    source: "demo_catalog",
+    checkedAt: "2026-08-19T00:00:00.000Z"
+  },
+  chakChak: {
+    id: "demo-chak-chak-user",
+    type: "hotel",
+    origin: "Казань",
+    destination: "Казань",
+    departureAt: "2026-09-12T12:30:00.000Z",
+    arrivalAt: "2026-09-12T17:30:00.000Z",
+    pricePerPerson: 800,
+    availableSeats: 4,
+    bookingUrl: "https://www.tutu.ru/",
+    source: "demo_catalog",
+    checkedAt: "2026-08-19T00:00:00.000Z"
+  },
+  sviyazhsk: {
+    id: "demo-sviyazhsk-etrain",
+    type: "suburban_train",
+    origin: "Казань",
+    destination: "Свияжск",
+    departureAt: "2026-09-12T12:50:00.000Z",
+    arrivalAt: "2026-09-12T14:05:00.000Z",
+    returnDepartureAt: "2026-09-12T16:10:00.000Z",
+    returnArrivalAt: "2026-09-12T18:02:00.000Z",
+    pricePerPerson: 2300,
+    availableSeats: 2,
+    bookingUrl: "https://www.tutu.ru/",
+    source: "demo_catalog",
+    checkedAt: "2026-08-19T00:00:00.000Z"
+  }
+} as const;
+
 async function seed() {
   const db = getDatabase();
 
@@ -241,7 +287,11 @@ async function seed() {
           pollId: ids.poll,
           title: "Иннополис",
           description: "Автобус туда-обратно, запас до ужина 58 минут",
+          travelOptionId: demoTravelOptions.innopolis.id,
+          travelOption: demoTravelOptions.innopolis,
           pricePerPerson: 790,
+          availableSeats: 6,
+          bookingUrl: demoTravelOptions.innopolis.bookingUrl,
           source: "demo_catalog",
           sortOrder: 0,
           createdByParticipantId: ids.nikita
@@ -251,7 +301,11 @@ async function seed() {
           pollId: ids.poll,
           title: "Музей чак-чака",
           description: "Пешком по центру, без риска по расписанию",
+          travelOptionId: demoTravelOptions.chakChak.id,
+          travelOption: demoTravelOptions.chakChak,
           pricePerPerson: 800,
+          availableSeats: 4,
+          bookingUrl: demoTravelOptions.chakChak.bookingUrl,
           source: "demo_catalog",
           sortOrder: 1,
           createdByParticipantId: ids.anna
@@ -261,7 +315,11 @@ async function seed() {
           pollId: ids.poll,
           title: "Свияжск",
           description: "Электричка и прогулка, буфер минимальный",
+          travelOptionId: demoTravelOptions.sviyazhsk.id,
+          travelOption: demoTravelOptions.sviyazhsk,
           pricePerPerson: 2300,
+          availableSeats: 2,
+          bookingUrl: demoTravelOptions.sviyazhsk.bookingUrl,
           source: "demo_catalog",
           sortOrder: 2,
           createdByParticipantId: ids.maria
@@ -272,7 +330,17 @@ async function seed() {
         set: {
           title: sql`excluded.title`,
           description: sql`excluded.description`,
+          travelOptionId: sql`excluded.travel_option_id`,
+          travelOption: sql`excluded.travel_option`,
           pricePerPerson: sql`excluded.price_per_person`,
+          availableSeats: sql`excluded.available_seats`,
+          bookingUrl: sql`excluded.booking_url`,
+          bookingStatus: "idle",
+          bookingFailureReason: null,
+          recheckedPricePerPerson: null,
+          lastCheckedAt: null,
+          bookingConfirmedAt: null,
+          bookingConfirmedByParticipantId: null,
           source: sql`excluded.source`,
           sortOrder: sql`excluded.sort_order`,
           updatedAt: new Date()
@@ -308,7 +376,7 @@ async function seed() {
           pollId: ids.poll,
           candidateId: ids.candidateSviyazhsk,
           participantId: ids.ilya,
-          value: "no"
+          value: "veto"
         }
       ])
       .onConflictDoUpdate({

@@ -1,15 +1,18 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import type { ManualEventDraft } from "@/lib/manual-event-repository";
 import { createManualEventContextService } from "@/lib/manual-event-context";
 import {
   validateManualEventDraft
 } from "@/lib/manual-event-service";
+import { checkManualEventLogistics } from "@/lib/manual-event-logistics";
 import { createPostgresCalendarRepository } from "@/lib/repositories/postgres-calendar-repository";
+import { createPollRepository } from "@/lib/polls";
 import { getCurrentTripId } from "@/lib/trips/current-trip";
 
 export type ManualEventActionResult =
-  | { status: "success"; href: string; eventId: string; message: string }
+  | { status: "success"; kind: "event" | "poll"; href: string; resourceId: string; message: string }
   | { status: "error"; message: string; logistics?: NonNullable<ReturnType<typeof validateManualEventDraft>["logistics"]> };
 
 export type ManualLogisticsActionResult =
@@ -37,7 +40,7 @@ export async function checkManualEventLogisticsAction(
   try {
     const context = await trustedContext(draft.gapId);
     if (!context) return { status: "error", message: "Свободное окно больше не найдено." };
-    const validation = validateManualEventDraft(context, draft, currentParticipantId);
+    const validation = await checkManualEventLogistics(context, draft, currentParticipantId);
     return validation.logistics
       ? {
           status: "success",
@@ -55,12 +58,6 @@ export async function createManualEventAction(
   currentParticipantId: string,
   idempotencyKey: string
 ): Promise<ManualEventActionResult> {
-  if (draft.publicationMode === "vote") {
-    return {
-      status: "error",
-      message: "Серверное голосование ещё подключается. Пока добавьте событие сразу в план."
-    };
-  }
   if (!/^[0-9a-f-]{36}$/i.test(idempotencyKey)) {
     return { status: "error", message: "Некорректный идентификатор операции. Обновите страницу." };
   }
@@ -68,9 +65,47 @@ export async function createManualEventAction(
   try {
     const context = await trustedContext(draft.gapId);
     if (!context) return { status: "error", message: "Свободное окно больше не найдено." };
-    const validation = validateManualEventDraft(context, draft, currentParticipantId);
+    // Saving always bypasses the short-lived route cache so a prior UI check
+    // cannot authorize a now-impossible itinerary.
+    const validation = await checkManualEventLogistics(
+      context,
+      draft,
+      currentParticipantId,
+      { bypassCache: true }
+    );
     if (!validation.ok || !validation.startsAt || !validation.endsAt) {
       return { status: "error", message: validation.message, logistics: validation.logistics };
+    }
+
+    const participantIds = [...new Set(draft.participantIds)];
+    if (draft.publicationMode === "vote") {
+      const poll = await createPollRepository().createPoll({
+        tripId: context.gap.tripId,
+        title: draft.title.trim(),
+        closesAt: new Date(Date.now() + 30 * 60_000),
+        createdByParticipantId: currentParticipantId,
+        candidates: [{
+          title: draft.title.trim(),
+          description: `${draft.locationName.trim()} · ${formatPollSchedule(validation.startsAt, validation.endsAt, context.timezone)}`,
+          travelOptionId: `manual:${idempotencyKey}`,
+          source: "manual"
+        }],
+        idempotencyKey: `manual-vote:${context.gap.tripId}:${idempotencyKey}`
+      }, {
+        startsAt: validation.startsAt,
+        endsAt: validation.endsAt,
+        locationName: draft.locationName.trim(),
+        participantIds
+      });
+      revalidatePath("/calendar");
+      revalidatePath(`/polls/${poll.id}`);
+      return {
+        status: "success",
+        kind: "poll",
+        href: `/polls/${poll.id}`,
+        resourceId: poll.id,
+        message: "Голосование создано и добавлено в общий план."
+      };
     }
 
     const result = await createPostgresCalendarRepository().saveManualEvent({
@@ -78,7 +113,7 @@ export async function createManualEventAction(
       title: draft.title,
       startsAt: validation.startsAt,
       endsAt: validation.endsAt,
-      participantIds: [...new Set(draft.participantIds)],
+      participantIds,
       location: { name: draft.locationName.trim() },
       type: "event",
       status: "active",
@@ -90,15 +125,17 @@ export async function createManualEventAction(
         nextRequiredAt: new Date(context.gap.nextRequiredAt),
         minimumReturnBufferMinutes: context.gap.bufferToNextEventMinutes,
         idempotencyKey,
-        routeChecked: false
+        routeChecked: validation.logistics?.status === "valid" || validation.logistics?.status === "warning"
       }
     });
 
     const href = `/calendar/items/${result.event.id}`;
+    revalidatePath("/calendar");
     return {
       status: "success",
+      kind: "event",
       href,
-      eventId: result.event.id,
+      resourceId: result.event.id,
       message: "Событие добавлено в общий план."
     };
   } catch {
@@ -107,4 +144,18 @@ export async function createManualEventAction(
       message: "Расписание изменилось или участник уже занят. Перепроверьте событие."
     };
   }
+}
+
+function formatPollSchedule(startsAt: Date, endsAt: Date, timezone: string) {
+  const date = new Intl.DateTimeFormat("ru-RU", {
+    timeZone: timezone,
+    day: "numeric",
+    month: "long"
+  }).format(startsAt);
+  const time = (value: Date) => new Intl.DateTimeFormat("ru-RU", {
+    timeZone: timezone,
+    hour: "2-digit",
+    minute: "2-digit"
+  }).format(value);
+  return `${date}, ${time(startsAt)}–${time(endsAt)}`;
 }

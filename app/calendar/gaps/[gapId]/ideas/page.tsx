@@ -29,7 +29,7 @@ export default async function IdeasPage({
       checkedAt: preset.candidates[0]?.check.checkedAt,
       warnings: ["Тестовый режим: показаны демонстрационные варианты"]
     };
-    return <IdeasScreen preset={preset} initialSearch={initialSearch} />;
+    return <IdeasScreen preset={preset} initialSearch={initialSearch} mockMode />;
   }
 
   const context = await loadIdeasContext(gapId);

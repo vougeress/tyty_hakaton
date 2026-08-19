@@ -106,7 +106,7 @@ async function searchCandidates(
     }
   }
 
-  return { ...result, warnings: [...new Set(warnings)], candidates: adaptTravelOptions(options, context.search) };
+  return { ...result, options, warnings: [...new Set(warnings)], candidates: adaptTravelOptions(options, context.search) };
 }
 
 export type CustomIdeaActionResult =
@@ -177,7 +177,10 @@ export async function createIdeasPollAction(formData: FormData): Promise<CreateI
       title: `Чем заполнить окно: ${destination}`,
       closesAt: new Date(now + 30 * 60_000),
       createdByParticipantId: participantId,
-      candidates: acceptable.map(ideaCandidateToPollCandidate),
+      candidates: acceptable.map((candidate) => ideaCandidateToPollCandidate(
+        candidate,
+        fresh.options.find((option) => option.id === candidate.id)
+      )),
       idempotencyKey: `ideas-${gapId}-${selectedIds.sort().join("-")}`.slice(0, 120)
     });
     return { status: "success", pollId: poll.id };

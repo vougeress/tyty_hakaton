@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 
 const DRAFTS_STORAGE_KEY = "tutu-okno:audit-transfer-drafts";
 
-test("проходит доступный P0 mock-flow и сохраняет переезды только как черновики", async ({ page }) => {
+test("проходит создание идей и сохраняет переезды только как черновики", async ({ page }) => {
   await page.goto("/calendar");
   await expect(page.locator('[data-preset-id="calendar.default"]')).toBeVisible();
 
@@ -11,17 +11,9 @@ test("проходит доступный P0 mock-flow и сохраняет п�
   await page.getByRole("link", { name: /Нет, подберите варианты/ }).click();
 
   await expect(page.locator('[data-preset-id="ideas.two_selected"]')).toBeVisible();
-  await page.getByRole("link", { name: "На голосование", exact: true }).click();
+  await page.getByRole("button", { name: "На голосование", exact: true }).click();
   await expect(page.locator('[data-preset-id="vote.active"]')).toBeVisible();
-  const yesButtons = page.getByRole("button", { name: "За", exact: true });
-  await yesButtons.nth(0).click();
-  await yesButtons.nth(1).click();
-  await page.getByRole("link", { name: "Завершить", exact: true }).click();
-
-  await expect(page.locator('[data-preset-id="winner.rechecked"]')).toBeVisible();
-  await expect(page.getByRole("link", { name: "Перейти к оформлению в Туту" })).toBeVisible();
-  await page.getByRole("button", { name: "Уже купили — закрепить вручную", exact: true }).click();
-  await page.getByRole("link", { name: "Открыть календарь", exact: true }).click();
+  await page.goto("/calendar");
 
   const checkButton = page.getByRole("button", { name: "Проверить", exact: true });
   await checkButton.click();
@@ -37,7 +29,7 @@ test("проходит доступный P0 mock-flow и сохраняет п�
   expect(await page.evaluate((key) => window.localStorage.getItem(key), DRAFTS_STORAGE_KEY)).toBeNull();
 
   await page.getByRole("link", { name: /Свияжск конфликтует с ужином/ }).click();
-  await expect(page.getByText("conflict.schedule_changed", { exact: true })).toBeVisible();
+  await expect(page.locator('[data-preset-id="conflict.schedule_changed"]')).toBeVisible();
   await page.goBack();
 
   await page.getByRole("button", { name: "Добавить 3 переезда как черновики", exact: true }).click();

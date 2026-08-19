@@ -15,6 +15,20 @@
       "when": 1787151562025,
       "tag": "0001_conscious_stardust",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1787153822576,
+      "tag": "0002_chunky_thundra",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1787155857782,
+      "tag": "0003_useful_adam_destine",
+      "breakpoints": true
     }
   ]
 }

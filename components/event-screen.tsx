@@ -11,12 +11,17 @@ import {
 } from "lucide-react";
 import type { CalendarParticipant, EventDetails } from "@/lib/calendar-repository";
 import { cn } from "@/lib/utils";
+import type { ReactNode } from "react";
 
-function shortTime(iso: string) {
-  return iso.slice(11, 16);
+function shortTime(iso: string, timezone: string) {
+  return new Intl.DateTimeFormat("ru-RU", {
+    timeZone: timezone,
+    hour: "2-digit",
+    minute: "2-digit"
+  }).format(new Date(iso));
 }
 
-export function EventScreen({ event, participants }: { event: EventDetails; participants: CalendarParticipant[] }) {
+export function EventScreen({ event, participants, calendarBackground }: { event: EventDetails; participants: CalendarParticipant[]; calendarBackground?: ReactNode }) {
   const routeUnchecked = event.source === "manual" && event.status !== "confirmed";
   const statusLabel = event.status === "confirmed"
     ? "Запланировано"
@@ -29,10 +34,14 @@ export function EventScreen({ event, participants }: { event: EventDetails; part
       className="relative mx-auto min-h-dvh w-full max-w-[430px] overflow-hidden bg-page text-ink shadow-shell sm:my-6 sm:min-h-[760px] sm:rounded-[28px]"
       data-preset-id={event.presetId}
     >
-      <div aria-hidden="true" className="absolute inset-0 bg-white">
-        <div className="h-16 border-b border-border" />
-        <div className="h-[46px] border-b border-border" />
-        <div className="h-[472px] bg-[repeating-linear-gradient(to_bottom,transparent_0,transparent_35px,var(--color-border)_36px)]" />
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden bg-white">
+        {calendarBackground ?? (
+          <>
+            <div className="h-16 border-b border-border" />
+            <div className="h-[46px] border-b border-border" />
+            <div className="h-[472px] bg-[repeating-linear-gradient(to_bottom,transparent_0,transparent_35px,var(--color-border)_36px)]" />
+          </>
+        )}
       </div>
       <Link href="/calendar" aria-label="Закрыть карточку события" className="absolute inset-0 z-10 bg-[#17213b]/25" />
 
@@ -63,7 +72,7 @@ export function EventScreen({ event, participants }: { event: EventDetails; part
         <div className="my-[13px] grid gap-2.5 text-[13px] leading-5">
           <div className="grid grid-cols-[20px_1fr] gap-2">
             <Clock3 aria-hidden="true" size={18} />
-            <span>{shortTime(event.startsAt)}–{shortTime(event.endsAt)}</span>
+            <span>{shortTime(event.startsAt, event.timezone)}–{shortTime(event.endsAt, event.timezone)}</span>
           </div>
           <div className="grid grid-cols-[20px_1fr] gap-2">
             <MapPin aria-hidden="true" size={18} />
@@ -90,7 +99,10 @@ export function EventScreen({ event, participants }: { event: EventDetails; part
                   "grid h-8 w-8 place-items-center rounded-full border-2 border-white text-[11px] font-semibold",
                   participant.tone === "purple" && "bg-primary text-white",
                   participant.tone === "cyan" && "bg-cyan text-ink",
-                  participant.tone === "lime" && "bg-lime text-ink"
+                  participant.tone === "lime" && "bg-lime text-ink",
+                  participant.tone === "coral" && "bg-coral text-white",
+                  participant.tone === "amber" && "bg-[#f4b942] text-ink",
+                  participant.tone === "blue" && "bg-[#4e8cff] text-white"
                 )}
               >
                 {participant.initial}
@@ -103,26 +115,34 @@ export function EventScreen({ event, participants }: { event: EventDetails; part
           </div>
         </div>
 
-        <div className="mt-3 grid grid-cols-2 gap-2">
-          <div className="flex min-h-12 items-center gap-2 rounded-[12px_12px_12px_5px] bg-page px-3 text-[12px]">
-            <TicketCheck aria-hidden="true" size={18} />
-            <span>Билеты<br />{event.ticketCount} файла</span>
+        {(event.ticketCount > 0 || event.photoCount > 0) && (
+          <div className="mt-3 grid grid-cols-[repeat(auto-fit,minmax(140px,1fr))] gap-2">
+            {event.ticketCount > 0 && (
+              <div className="flex min-h-12 items-center gap-2 rounded-[12px_12px_12px_5px] bg-page px-3 text-[12px]">
+                <TicketCheck aria-hidden="true" size={18} />
+                <span>Билеты<br />{event.ticketCount} файла</span>
+              </div>
+            )}
+            {event.photoCount > 0 && (
+              <div className="flex min-h-12 items-center gap-2 rounded-[12px_12px_12px_5px] bg-page px-3 text-[12px]">
+                <ImageIcon aria-hidden="true" size={18} />
+                <span>Фотографии<br />{event.photoCount} снимков</span>
+              </div>
+            )}
           </div>
-          <div className="flex min-h-12 items-center gap-2 rounded-[12px_12px_12px_5px] bg-page px-3 text-[12px]">
-            <ImageIcon aria-hidden="true" size={18} />
-            <span>Фотографии<br />{event.photoCount} снимков</span>
-          </div>
-        </div>
+        )}
 
-        <div className="mt-3 grid grid-cols-2 gap-2">
+        <div className={cn("mt-3 grid gap-2", event.ticketCount > 0 && "grid-cols-2")}>
           <a href={event.mapUrl} target="_blank" rel="noreferrer" className="inline-flex min-h-[46px] items-center justify-center gap-2 rounded-[12px_12px_12px_5px] border border-border text-[13px] font-semibold">
             <Navigation aria-hidden="true" size={17} />
             Маршрут
           </a>
-          <button type="button" className="inline-flex min-h-[46px] items-center justify-center gap-2 rounded-[12px_12px_12px_5px] bg-primary text-[13px] font-semibold text-white">
-            <TicketCheck aria-hidden="true" size={17} />
-            Открыть билет
-          </button>
+          {event.ticketCount > 0 && (
+            <button type="button" className="inline-flex min-h-[46px] items-center justify-center gap-2 rounded-[12px_12px_12px_5px] bg-primary text-[13px] font-semibold text-white">
+              <TicketCheck aria-hidden="true" size={17} />
+              Открыть билет
+            </button>
+          )}
         </div>
       </section>
     </main>

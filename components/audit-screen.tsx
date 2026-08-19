@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useTransition } from "react";
 import {
   AlarmClock,
   AlertTriangle,
@@ -15,6 +15,7 @@ import {
   Sparkles
 } from "lucide-react";
 import { Button, ButtonLink } from "@/components/ui/button";
+import { draftAuditTransfersAction } from "@/app/audit/actions";
 import {
   readAuditTransferDrafts,
   saveAuditTransferDrafts,
@@ -23,7 +24,13 @@ import {
 } from "@/lib/audit-repository";
 import { cn } from "@/lib/utils";
 
-export function AuditScreen({ result }: { result: AuditRepositoryResult }) {
+export function AuditScreen({
+  result,
+  persistence = "mock"
+}: {
+  result: AuditRepositoryResult;
+  persistence?: "mock" | "postgres";
+}) {
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-[430px] flex-col bg-page shadow-shell sm:my-6 sm:min-h-[760px] sm:overflow-hidden sm:rounded-[28px]">
       <AuditHeader />
@@ -31,7 +38,7 @@ export function AuditScreen({ result }: { result: AuditRepositoryResult }) {
         {result.status === "loading" && <AuditLoading />}
         {result.status === "empty" && <AuditEmpty checkedAt={result.checkedAt} />}
         {result.status === "error" && <AuditError message={result.message} />}
-        {result.status === "ready" && <AuditReportView report={result.report} />}
+        {result.status === "ready" && <AuditReportView report={result.report} persistence={persistence} />}
       </div>
     </main>
   );
@@ -56,20 +63,39 @@ function AuditHeader() {
 }
 
 function AuditReportView({
-  report
+  report,
+  persistence
 }: {
   report: Extract<AuditRepositoryResult, { status: "ready" }>["report"];
+  persistence: "mock" | "postgres";
 }) {
-  const [transfersDrafted, setTransfersDrafted] = useState(false);
+  const [transfersDrafted, setTransfersDrafted] = useState(
+    report.suggestedTransfers.length === 0 && (report.draftedTransferIds?.length ?? 0) > 0
+  );
+  const [saveError, setSaveError] = useState<string>();
+  const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
+    if (persistence !== "mock") return;
     const draftedIds = new Set(readAuditTransferDrafts(window.localStorage).map(({ id }) => id));
     setTransfersDrafted(report.suggestedTransfers.every(({ id }) => draftedIds.has(id)));
-  }, [report.suggestedTransfers]);
+  }, [persistence, report.suggestedTransfers]);
 
   function draftTransfers() {
-    saveAuditTransferDrafts(window.localStorage, report.suggestedTransfers, report.checkedAt);
-    setTransfersDrafted(true);
+    setSaveError(undefined);
+    if (persistence === "mock") {
+      saveAuditTransferDrafts(window.localStorage, report.suggestedTransfers, report.checkedAt);
+      setTransfersDrafted(true);
+      return;
+    }
+    startTransition(async () => {
+      const result = await draftAuditTransfersAction(report.suggestedTransfers.map(({ id }) => id));
+      if (result.status === "error") {
+        setSaveError(result.message);
+        return;
+      }
+      setTransfersDrafted(true);
+    });
   }
 
   return (
@@ -84,17 +110,17 @@ function AuditReportView({
           </span>
           <span className="min-w-0">
             <strong className="block text-base leading-5 text-ink">
-              {report.checkedEventCount} событий и {report.checkedBookingCount} билета проверены
+              Проверено: {countLabel(report.checkedEventCount, "событие", "события", "событий")} и {countLabel(report.checkedBookingCount, "билет", "билета", "билетов")}
             </strong>
             <span className="mt-1 block text-sm text-ink/60">
-              {report.conflictCount} конфликт · {report.suggestedTransfers.length} переезда можно добавить
+              {auditSummary(report.conflictCount, report.suggestedTransfers.length)}
             </span>
           </span>
         </div>
         <div className="mt-3 flex items-center justify-between border-t border-ink/10 pt-3 text-xs text-ink/60">
           <span>Последняя проверка: {report.checkedAt}</span>
           <span className="rounded-full bg-surface/70 px-2 py-1 font-semibold text-ink">
-            {report.issueCount} замечания
+            {countLabel(report.issueCount, "замечание", "замечания", "замечаний")}
           </span>
         </div>
       </section>
@@ -105,27 +131,51 @@ function AuditReportView({
         ))}
       </section>
 
-      <section className="rounded-[12px] border border-primary/20 bg-primary/5 p-3 text-sm leading-5 text-ink/65">
-        Переезды будут сохранены как черновики. Мы не переставим события и не опубликуем изменения автоматически.
-      </section>
+      {report.suggestedTransfers.length > 0 && (
+        <>
+          <section className="rounded-[12px] border border-primary/20 bg-primary/5 p-3 text-sm leading-5 text-ink/65">
+            <strong className="block text-ink">Что значит «черновик»</strong>
+            Переезд появится в календаре с пунктирной рамкой и пометкой «Черновик». Он не меняет время соседних событий и не считается подтверждённым, пока вы его не проверите.
+          </section>
 
-      <Button
-        type="button"
-        className="w-full"
-        disabled={transfersDrafted}
-        onClick={draftTransfers}
-      >
-        {transfersDrafted ? <CheckCircle2 aria-hidden="true" size={18} /> : <Route aria-hidden="true" size={18} />}
-        {transfersDrafted ? "Переезды добавлены" : `Добавить ${report.suggestedTransfers.length} переезда как черновики`}
-      </Button>
+          <Button
+            type="button"
+            className="w-full"
+            disabled={transfersDrafted || isPending}
+            onClick={draftTransfers}
+          >
+            {transfersDrafted ? <CheckCircle2 aria-hidden="true" size={18} /> : <Route aria-hidden="true" size={18} />}
+            {transfersDrafted ? "Переезды добавлены" : isPending ? "Сохраняем…" : draftButtonLabel(report.suggestedTransfers.length)}
+          </Button>
+        </>
+      )}
 
-      {transfersDrafted && (
+      {saveError && <div role="alert" className="rounded-[12px] border border-coral/20 bg-coral/10 p-3 text-sm font-semibold text-coral">{saveError}</div>}
+
+      {(transfersDrafted || (report.draftedTransferIds?.length ?? 0) > 0) && (
         <div role="status" className="rounded-[12px] border border-success/20 bg-success/10 p-3 text-sm font-semibold text-success">
-          Переезды добавлены как черновики. План не изменён.
+          В календаре есть черновики переездов: {report.draftedTransferIds?.length || report.suggestedTransfers.length}. План не изменён автоматически.
         </div>
       )}
     </div>
   );
+}
+
+function draftButtonLabel(count: number) {
+  return `Добавить ${countLabel(count, "переезд", "переезда", "переездов")} как черновики`;
+}
+
+function auditSummary(conflictCount: number, transferCount: number) {
+  const conflicts = countLabel(conflictCount, "конфликт", "конфликта", "конфликтов");
+  if (transferCount === 0) return `${conflicts} · новых переездов нет`;
+  return `${conflicts} · можно добавить ${countLabel(transferCount, "переезд", "переезда", "переездов")}`;
+}
+
+function countLabel(count: number, one: string, few: string, many: string) {
+  const lastTwo = count % 100;
+  const last = count % 10;
+  const noun = lastTwo >= 11 && lastTwo <= 14 ? many : last === 1 ? one : last >= 2 && last <= 4 ? few : many;
+  return `${count} ${noun}`;
 }
 
 function AuditIssueRow({ issue }: { issue: AuditIssue }) {
@@ -146,6 +196,24 @@ function AuditIssueRow({ issue }: { issue: AuditIssue }) {
       <span className="min-w-0 flex-1">
         <strong className="block text-sm leading-5 text-ink">{issue.title}</strong>
         <span className="mt-0.5 block text-xs leading-4 text-ink/58">{issue.description}</span>
+        {issue.relatedEvents && (
+          <span className="mt-1 flex flex-wrap gap-1">
+            {issue.relatedEvents.map((event) => issue.conflictId ? (
+              <span key={event.id} className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold text-ink/65">
+                {event.title}
+              </span>
+            ) : (
+              <Link key={event.id} href={`/calendar/items/${event.id}`} className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold text-ink/65 underline-offset-2 hover:underline">
+                {event.title}
+              </Link>
+            ))}
+          </span>
+        )}
+        {issue.tone === "suggestion" && (
+          <span className="mt-1 inline-flex rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary">
+            Будет добавлен как черновик
+          </span>
+        )}
       </span>
       {issue.tone === "ready" ? (
         <span className="rounded-full bg-success/10 px-2.5 py-1 text-xs font-semibold text-success">{issue.meta}</span>

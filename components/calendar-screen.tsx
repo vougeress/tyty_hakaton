@@ -2,11 +2,13 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
   CalendarDays,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Images,
   Plus,
   Route,
@@ -15,14 +17,17 @@ import {
 import type {
   CalendarGap,
   CalendarItem,
+  CalendarParticipant,
   CalendarPreset
 } from "@/lib/calendar-repository";
 import { readManualCalendarItems } from "@/lib/manual-calendar-storage";
+import { useCurrentParticipantId } from "@/lib/use-current-participant";
 import { cn } from "@/lib/utils";
 
-const GRID_START_HOUR = 9;
-const GRID_END_HOUR = 22;
+const GRID_START_HOUR = 0;
+const GRID_END_HOUR = 24;
 const PX_PER_HOUR = 36;
+const GRID_HEIGHT = (GRID_END_HOUR - GRID_START_HOUR) * PX_PER_HOUR;
 
 type PositionedEntry =
   | { kind: "item"; entry: CalendarItem; column: number; top: number; height: number }
@@ -59,36 +64,50 @@ function positionEntry(
   const gridStart = GRID_START_HOUR * 60;
   const gridEnd = GRID_END_HOUR * 60;
   const visibleStart = Math.max(start.minutes, gridStart);
-  const visibleEnd = Math.min(end.minutes, gridEnd);
+  const visibleEnd = Math.min(end.day === start.day ? end.minutes : gridEnd, gridEnd);
   const top = ((visibleStart - gridStart) / 60) * PX_PER_HOUR;
   const height = Math.max(32, ((visibleEnd - visibleStart) / 60) * PX_PER_HOUR);
 
   return { kind, entry, column, top, height } as PositionedEntry;
 }
 
-function entryClasses(entry: CalendarItem) {
-  if (entry.status === "conflicted") {
-    return "border-[1.5px] border-coral bg-[#fff0ee] text-[#9b302b]";
-  }
-  if (entry.type === "booking") {
-    return "border-x-0 border-b-0 border-t-4 border-accent bg-ink text-white";
-  }
-  if (entry.type === "draft") {
-    return "border border-dashed border-primary/70 bg-primary/10 text-primary-strong";
-  }
+function shiftedIsoDate(isoDate: string, days: number) {
+  const date = new Date(`${isoDate}T00:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
+function weekLabel(days: CalendarPreset["days"]) {
+  const first = new Date(`${days[0].isoDate}T00:00:00Z`);
+  const last = new Date(`${days[6].isoDate}T00:00:00Z`);
+  const formatter = new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "short", timeZone: "UTC" });
+  return `${formatter.format(first)} — ${formatter.format(last)}`;
+}
+
+function participantEntryClasses(tone: CalendarParticipant["tone"]) {
+  if (tone === "cyan") return "border border-cyan bg-cyan/[0.24] text-ink";
+  if (tone === "lime") return "border border-[#8acb2e] bg-lime/[0.24] text-[#36520f]";
+  if (tone === "coral") return "border border-coral bg-coral/[0.16] text-[#8f302b]";
+  if (tone === "amber") return "border border-[#dc9b22] bg-[#f4b942]/[0.18] text-[#6d4500]";
+  if (tone === "blue") return "border border-[#4e8cff] bg-[#4e8cff]/[0.16] text-[#174d9b]";
+  return "border border-primary bg-primary/[0.16] text-primary-strong";
+}
+
+function entryClasses(entry: CalendarItem, participants: CalendarParticipant[]) {
   if (entry.type === "poll") {
-    if (entry.status === "confirmed") {
-      return "border-[1.5px] border-success bg-success/10 text-success";
-    }
-    return "border-[1.5px] border-dashed border-[#e4a928] bg-[#fff9cf] text-[#6b4500]";
+    return "border border-transparent bg-[linear-gradient(rgb(225_247_255/.94),rgb(225_247_255/.94)),linear-gradient(125deg,#45caff,#ffffff,#6f5df6,#45caff)] [background-clip:padding-box,border-box] [background-origin:border-box] text-[#164b78] shadow-[0_0_10px_rgb(69_202_255/.28)]";
   }
-  if (entry.status === "confirmed" && entry.type === "event") {
-    return "border border-transparent bg-primary text-white";
-  }
-  if (entry.type === "transfer") {
-    return "border border-cyan bg-cyan/30 text-ink";
-  }
-  return "border border-cyan bg-cyan/30 text-ink";
+  const personalParticipant = entry.participantIds.length === 1
+    ? participants.find(({ id }) => id === entry.participantIds[0])
+    : undefined;
+  const ownership = personalParticipant
+    ? participantEntryClasses(personalParticipant.tone)
+    : "border border-transparent bg-[linear-gradient(rgb(255_255_255/.88),rgb(255_255_255/.88)),linear-gradient(125deg,#6f5df6,#6dd8df,#d1ff1a,#ff776d,#6f5df6)] [background-clip:padding-box,border-box] [background-origin:border-box] text-ink shadow-[0_0_9px_rgb(111_93_246/.16)]";
+  return cn(
+    ownership,
+    entry.status === "draft" && "border-dashed opacity-75",
+    entry.status === "conflicted" && "ring-2 ring-coral ring-offset-1"
+  );
 }
 
 function getEntryAriaLabel(entry: CalendarItem, timezone: string) {
@@ -97,24 +116,57 @@ function getEntryAriaLabel(entry: CalendarItem, timezone: string) {
   return `${entry.title}, ${start}${status}`;
 }
 
-export function CalendarScreen({ preset }: { preset: CalendarPreset }) {
+export function CalendarScreen({
+  preset,
+  mockMode = false,
+  embedded = false
+}: {
+  preset: CalendarPreset;
+  mockMode?: boolean;
+  embedded?: boolean;
+}) {
   const router = useRouter();
   const [participantFilter, setParticipantFilter] = useState("all");
   const [isChecking, setIsChecking] = useState(false);
   const [scanVisible, setScanVisible] = useState(false);
   const [manualItems, setManualItems] = useState<CalendarItem[]>([]);
-  const currentParticipant = preset.participants[0];
+  const [weekOffset, setWeekOffset] = useState(0);
+  const gridScrollRef = useRef<HTMLDivElement>(null);
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
+  const currentParticipantId = useCurrentParticipantId(preset.participants.map(({ id }) => id));
+  const currentParticipant = preset.participants.find(({ id }) => id === currentParticipantId) ?? preset.participants[0];
   const participantFilters = [
     { id: "all", label: "Все" },
     ...preset.participants.map((participant) => ({
       id: participant.id,
-      label: participant.id === currentParticipant?.id ? "Я" : participant.shortName
+      label: participant.id === currentParticipant?.id
+        ? "Я"
+        : participant.shortName === "Я"
+          ? participant.displayName
+          : participant.shortName
     }))
   ];
+  const selectedDate = preset.days.find(({ isCurrent }) => isCurrent)?.isoDate;
+  const visibleDays = useMemo(() => preset.days.map((day) => {
+    const isoDate = shiftedIsoDate(day.isoDate, weekOffset * 7);
+    const date = new Date(`${isoDate}T00:00:00Z`);
+    return {
+      label: ["Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"][date.getUTCDay()],
+      date: date.getUTCDate(),
+      isoDate,
+      ...(isoDate === selectedDate ? { isCurrent: true } : {})
+    };
+  }), [preset.days, selectedDate, weekOffset]);
+  const visibleDateIds = new Set(visibleDays.map(({ isoDate }) => isoDate));
+  const addHref = preset.gaps.find((gap) => visibleDateIds.has(dateParts(gap.startsAt, preset.trip.timezone).day))?.href;
 
   useEffect(() => {
-    setManualItems(readManualCalendarItems());
-  }, []);
+    setManualItems(mockMode ? readManualCalendarItems() : []);
+  }, [mockMode]);
+
+  useEffect(() => {
+    if (gridScrollRef.current) gridScrollRef.current.scrollTop = 8 * PX_PER_HOUR;
+  }, [weekOffset]);
 
   const positionedEntries = useMemo(() => {
     const manualItemIds = new Set(manualItems.map(({ id }) => id));
@@ -124,15 +176,31 @@ export function CalendarScreen({ preset }: { preset: CalendarPreset }) {
     ];
     const itemEntries = mergedItems
       .filter((item) => participantFilter === "all" || item.participantIds.includes(participantFilter))
-      .map((item) => positionEntry(item, preset.days, "item", preset.trip.timezone))
+      .map((item) => positionEntry(item, visibleDays, "item", preset.trip.timezone))
       .filter((item): item is PositionedEntry => item !== null);
     const gapEntries = preset.gaps
       .filter((gap) => participantFilter === "all" || gap.participantIds.includes(participantFilter))
-      .map((gap) => positionEntry(gap, preset.days, "gap", preset.trip.timezone))
+      .map((gap) => positionEntry(gap, visibleDays, "gap", preset.trip.timezone))
       .filter((item): item is PositionedEntry => item !== null);
 
     return [...itemEntries, ...gapEntries].sort((a, b) => a.entry.startsAt.localeCompare(b.entry.startsAt));
-  }, [manualItems, participantFilter, preset]);
+  }, [manualItems, participantFilter, preset, visibleDays]);
+
+  function handleTouchStart(event: React.TouchEvent) {
+    const touch = event.touches[0];
+    touchStartRef.current = { x: touch.clientX, y: touch.clientY };
+  }
+
+  function handleTouchEnd(event: React.TouchEvent) {
+    const start = touchStartRef.current;
+    const touch = event.changedTouches[0];
+    touchStartRef.current = null;
+    if (!start) return;
+    const deltaX = touch.clientX - start.x;
+    const deltaY = touch.clientY - start.y;
+    if (Math.abs(deltaX) < 60 || Math.abs(deltaX) <= Math.abs(deltaY)) return;
+    setWeekOffset((current) => current + (deltaX < 0 ? 1 : -1));
+  }
 
   function runCheck() {
     if (isChecking) return;
@@ -147,7 +215,10 @@ export function CalendarScreen({ preset }: { preset: CalendarPreset }) {
 
   return (
     <main
-      className="mx-auto flex min-h-dvh w-full max-w-[430px] flex-col overflow-hidden bg-surface text-ink shadow-shell sm:my-6 sm:min-h-[760px] sm:rounded-[28px]"
+      className={cn(
+        "mx-auto flex w-full max-w-[430px] flex-col overflow-hidden bg-surface text-ink",
+        embedded ? "h-dvh" : "h-dvh shadow-shell sm:my-6 sm:h-[760px] sm:rounded-[28px]"
+      )}
       data-preset-id={preset.id}
     >
       <header className="flex min-h-16 items-center justify-between gap-3 bg-surface px-4 py-3">
@@ -168,7 +239,15 @@ export function CalendarScreen({ preset }: { preset: CalendarPreset }) {
         <Link
           href="/trips"
           aria-label={`Профиль ${currentParticipant?.displayName ?? "участника"}`}
-          className="grid h-[38px] w-[38px] shrink-0 place-items-center rounded-full bg-primary text-[13px] font-semibold text-white"
+          className={cn(
+            "grid h-[38px] w-[38px] shrink-0 place-items-center rounded-full text-[13px] font-semibold",
+            currentParticipant?.tone === "cyan" && "bg-cyan text-ink",
+            currentParticipant?.tone === "lime" && "bg-lime text-ink",
+            currentParticipant?.tone === "coral" && "bg-coral text-white",
+            currentParticipant?.tone === "amber" && "bg-[#f4b942] text-ink",
+            currentParticipant?.tone === "blue" && "bg-[#4e8cff] text-white",
+            (!currentParticipant || currentParticipant.tone === "purple") && "bg-primary text-white"
+          )}
         >
           {currentParticipant?.initial ?? "?"}
         </Link>
@@ -203,9 +282,17 @@ export function CalendarScreen({ preset }: { preset: CalendarPreset }) {
         </button>
       </div>
 
+      <div className="flex h-10 shrink-0 items-center justify-between border-b border-border bg-white px-3">
+        <button type="button" onClick={() => setWeekOffset((value) => value - 1)} aria-label="Предыдущая неделя" className="grid h-8 w-8 place-items-center rounded-full hover:bg-page"><ChevronLeft aria-hidden="true" size={18} /></button>
+        <button type="button" onClick={() => setWeekOffset(0)} className="rounded-full px-3 py-1 text-[12px] font-semibold text-ink" aria-label="Вернуться к неделе поездки">
+          {weekLabel(visibleDays)}
+        </button>
+        <button type="button" onClick={() => setWeekOffset((value) => value + 1)} aria-label="Следующая неделя" className="grid h-8 w-8 place-items-center rounded-full hover:bg-page"><ChevronRight aria-hidden="true" size={18} /></button>
+      </div>
+
       <div className="grid h-[46px] shrink-0 grid-cols-[30px_repeat(7,minmax(0,1fr))] border-b border-border">
         <span />
-        {preset.days.map((day) => (
+        {visibleDays.map((day) => (
           <div
             key={day.isoDate}
             className="grid place-content-center place-items-center gap-0.5 border-l border-border text-[11px] text-ink/58"
@@ -223,19 +310,24 @@ export function CalendarScreen({ preset }: { preset: CalendarPreset }) {
         ))}
       </div>
 
-      <div className="relative min-h-0 flex-1 overflow-y-auto pb-[76px]">
+      <div ref={gridScrollRef} className="relative min-h-0 flex-1 overflow-y-auto overscroll-contain pb-[76px]" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
         <div
-          className="relative h-[472px] min-h-[472px] bg-surface before:pointer-events-none before:absolute before:inset-y-0 before:left-[30px] before:right-0 before:bg-[repeating-linear-gradient(to_bottom,transparent_0,transparent_35px,var(--color-border)_36px),repeating-linear-gradient(to_right,transparent_0,transparent_calc((100%/7)-1px),var(--color-border)_calc(100%/7))]"
-          aria-label="События недели с 7 по 13 сентября"
+          className="relative bg-surface before:pointer-events-none before:absolute before:inset-y-0 before:left-[30px] before:right-0 before:bg-[repeating-linear-gradient(to_bottom,transparent_0,transparent_35px,var(--color-border)_36px),repeating-linear-gradient(to_right,transparent_0,transparent_calc((100%/7)-1px),var(--color-border)_calc(100%/7))]"
+          style={{ height: `${GRID_HEIGHT}px`, minHeight: `${GRID_HEIGHT}px` }}
+          aria-label={`События недели ${weekLabel(visibleDays)}`}
         >
           {positionedEntries.length === 0 && (
             <div className="absolute inset-x-12 top-24 z-[3] rounded-[8px] border border-dashed border-primary/35 bg-white/95 p-4 text-center shadow-card">
               <p className="text-sm font-semibold">План пока пуст</p>
               <p className="mt-1 text-xs text-ink/58">Добавьте первое событие поездки.</p>
-              <Link href="/calendar/gaps/demo-gap/manual" className="mt-3 inline-flex h-9 items-center rounded-[8px] bg-primary px-3 text-xs font-semibold text-white">Добавить событие</Link>
+              {addHref ? (
+                <Link href={addHref.replace(/\/create$/, "/manual")} className="mt-3 inline-flex h-9 items-center rounded-[8px] bg-primary px-3 text-xs font-semibold text-white">Добавить событие</Link>
+              ) : (
+                <p className="mt-3 text-xs text-ink/50">Добавьте опорные события поездки, чтобы появилось свободное окно.</p>
+              )}
             </div>
           )}
-          {[9, 12, 15, 18, 21].map((hour) => (
+          {[0, 3, 6, 9, 12, 15, 18, 21].map((hour) => (
             <span
               key={hour}
               className="absolute left-1 -translate-y-[7px] text-[11px] text-ink/58"
@@ -259,7 +351,7 @@ export function CalendarScreen({ preset }: { preset: CalendarPreset }) {
                   key={`gap-${entry.id}`}
                   href={entry.href}
                   style={style}
-                  className="absolute z-[2] overflow-hidden rounded-[7px_7px_7px_3px] border border-primary/60 bg-primary/10 p-[5px_4px] text-left text-[11px] font-semibold leading-[1.17] text-primary-strong shadow-[inset_3px_0_0_var(--color-primary)]"
+                  className="absolute z-[2] overflow-hidden rounded-[7px_7px_7px_3px] border-2 border-dashed border-[#e59a28] bg-[#fff7e7]/90 p-[5px_4px] text-left text-[11px] font-semibold leading-[1.17] text-[#82500d] shadow-[inset_3px_0_0_#e59a28]"
                   aria-label="Свободное окно, суббота с 12:20 до 18:10"
                 >
                   Окно
@@ -275,7 +367,7 @@ export function CalendarScreen({ preset }: { preset: CalendarPreset }) {
                 style={style}
                 className={cn(
                   "absolute z-[2] overflow-hidden rounded-[7px_7px_7px_3px] p-[5px_4px] text-left text-[11px] font-semibold leading-[1.17]",
-                  entryClasses(entry)
+                  entryClasses(entry, preset.participants)
                 )}
                 aria-label={getEntryAriaLabel(entry, preset.trip.timezone)}
               >
@@ -302,7 +394,7 @@ export function CalendarScreen({ preset }: { preset: CalendarPreset }) {
       </div>
 
       <nav className="absolute bottom-0 left-1/2 z-10 grid h-[76px] w-full max-w-[430px] -translate-x-1/2 grid-cols-3 items-end border-t border-border bg-white/95 px-6 pb-2.5 pt-1.5 backdrop-blur" aria-label="Основная навигация">
-        <Link href="/calendar/gaps/demo-gap/create" className="grid min-h-[52px] place-items-center content-center gap-1 text-[11px] text-ink/58">
+        <Link href={addHref ?? "/calendar"} aria-disabled={!addHref} className="grid min-h-[52px] place-items-center content-center gap-1 text-[11px] text-ink/58">
           <Plus aria-hidden="true" size={20} />
           Добавить
         </Link>

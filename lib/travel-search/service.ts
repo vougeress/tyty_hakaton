@@ -33,6 +33,19 @@ export class TravelSearchService {
     try {
       const adapter = mode === "live" ? this.liveAdapter : this.mockAdapter;
       const options = await adapter.search(validated);
+      if (mode === "live" && validated.mode === "auto" && options.length === 0) {
+        warnings.push("Live MCP не вернул подходящих вариантов, показан резервный каталог");
+        const fallbackOptions = await this.mockAdapter.search(validated);
+        const fallbackResult: TravelSearchResult = {
+          options: fallbackOptions,
+          checkedAt: new Date().toISOString(),
+          mode: "mock",
+          cache: "miss",
+          warnings
+        };
+        setCached(cacheKey, fallbackResult, CACHE_TTL_MS);
+        return fallbackResult;
+      }
       const result: TravelSearchResult = {
         options,
         checkedAt: new Date().toISOString(),
@@ -66,7 +79,7 @@ export function createTravelSearchService() {
 function resolveMode(input: TravelSearchInput): "mock" | "live" {
   if (input.mode === "mock") return "mock";
   if (input.mode === "live") return "live";
-  return process.env.TUTU_MCP_URL ? "live" : "mock";
+  return process.env.E2E_MOCK_MODE === "1" ? "mock" : "live";
 }
 
 function createCacheKey(input: TravelSearchInput) {
