@@ -3,40 +3,53 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Check, CheckCircle2, ChevronDown, Flag, Send } from "lucide-react";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  mockManualEventRepository,
+  checkManualEventLogisticsAction,
+  createManualEventAction,
+  type ManualEventActionResult
+} from "@/app/calendar/gaps/[gapId]/manual/actions";
+import {
   type ManualEventContext,
-  type ManualEventDraft,
-  type ManualEventResult
+  type ManualEventDraft
 } from "@/lib/manual-event-repository";
+import { PARTICIPANT_STORAGE_KEY } from "@/lib/trips/constants";
 import { cn } from "@/lib/utils";
 
 type PublicationMode = ManualEventDraft["publicationMode"];
 
 export function ManualEventScreen({ context }: { context: ManualEventContext }) {
   const router = useRouter();
+  const initialStartsAt = toDatetimeLocal(context.initialDraft.startsAt, context.timezone);
+  const initialEndsAt = toDatetimeLocal(context.initialDraft.endsAt, context.timezone);
   const [title, setTitle] = useState(context.initialDraft.title);
   const [locationName, setLocationName] = useState(context.initialDraft.locationName);
-  const [startsAt, setStartsAt] = useState(context.initialDraft.startsAt.slice(0, 16));
-  const [endsAt, setEndsAt] = useState(context.initialDraft.endsAt.slice(0, 16));
+  const [startsAt, setStartsAt] = useState(initialStartsAt);
+  const [endsAt, setEndsAt] = useState(initialEndsAt);
   const [selectedIds, setSelectedIds] = useState(context.initialDraft.participantIds);
+  const [currentParticipantId, setCurrentParticipantId] = useState(context.currentParticipantId);
   const [mode, setMode] = useState<PublicationMode>(context.initialDraft.publicationMode);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [checkingLogistics, setCheckingLogistics] = useState(false);
-  const [checkedSnapshot, setCheckedSnapshot] = useState(() => `${context.initialDraft.startsAt.slice(0, 16)}|${context.initialDraft.endsAt.slice(0, 16)}|${context.initialDraft.locationName}`);
-  const [createdResult, setCreatedResult] = useState<ManualEventResult | null>(null);
+  const [checkedSnapshot, setCheckedSnapshot] = useState<string | null>(null);
+  const [logistics, setLogistics] = useState(context.logistics);
+  const [requestId] = useState(() => crypto.randomUUID());
+  const [createdResult, setCreatedResult] = useState<Extract<ManualEventActionResult, { status: "success" }> | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const groupSelectionRef = useRef(context.initialDraft.participantIds);
 
-  const onlyMe = selectedIds.length === 1 && selectedIds[0] === context.currentParticipantId;
+  useEffect(() => {
+    const stored = window.localStorage.getItem(PARTICIPANT_STORAGE_KEY);
+    if (!stored || !context.participants.some(({ id }) => id === stored)) return;
+    setCurrentParticipantId(stored);
+  }, [context.participants]);
+
+  const onlyMe = selectedIds.length === 1 && selectedIds[0] === currentParticipantId;
   const noParticipants = selectedIds.length === 0;
   const invalidTimeRange = !startsAt || !endsAt || Date.parse(startsAt) >= Date.parse(endsAt);
-  const startsAtIso = `${startsAt}:00${context.utcOffset}`;
-  const endsAtIso = `${endsAt}:00${context.utcOffset}`;
-  const outsideGap = !invalidTimeRange && (Date.parse(startsAtIso) < Date.parse(context.gap.startsAt) || Date.parse(endsAtIso) > Date.parse(context.gap.endsAt));
-  const logisticsStale = checkedSnapshot !== `${startsAt}|${endsAt}|${locationName}`;
+  const logisticsSnapshot = `${startsAt}|${endsAt}|${locationName}|${[...selectedIds].sort().join(",")}`;
+  const logisticsStale = checkedSnapshot !== logisticsSnapshot;
   const effectiveMode: PublicationMode = onlyMe ? "direct" : mode;
   const presetId = noParticipants
     ? "manual.no_participants"
@@ -56,7 +69,7 @@ export function ManualEventScreen({ context }: { context: ManualEventContext }) 
   function toggleParticipant(id: string) {
     setSelectedIds((current) => {
       const next = current.includes(id) ? current.filter((item) => item !== id) : [...current, id];
-      if (!(next.length === 1 && next[0] === context.currentParticipantId) && next.length > 0) {
+      if (!(next.length === 1 && next[0] === currentParticipantId) && next.length > 0) {
         groupSelectionRef.current = next;
       }
       return next;
@@ -65,44 +78,63 @@ export function ManualEventScreen({ context }: { context: ManualEventContext }) 
 
   function toggleOnlyMe() {
     if (onlyMe) {
-      const restored = groupSelectionRef.current.filter((id) => id !== context.currentParticipantId);
-      setSelectedIds(restored.length ? [context.currentParticipantId, ...restored] : context.gap.participantIds);
+      const restored = groupSelectionRef.current.filter((id) => id !== currentParticipantId);
+      setSelectedIds(restored.length ? [currentParticipantId, ...restored] : context.gap.participantIds);
       return;
     }
     if (selectedIds.length > 1) groupSelectionRef.current = selectedIds;
-    setSelectedIds([context.currentParticipantId]);
+    setSelectedIds([currentParticipantId]);
     setMode("direct");
   }
 
   async function submit() {
-    if (noParticipants || !title.trim() || !locationName.trim() || invalidTimeRange || outsideGap || logisticsStale || submitting) return;
+    if (noParticipants || !title.trim() || !locationName.trim() || invalidTimeRange || logisticsStale || submitting) return;
     setSubmitting(true);
     setSubmitError(null);
     try {
-      const result = await mockManualEventRepository.create({
-        ...context.initialDraft,
-        title: title.trim(),
-        locationName: locationName.trim(),
-        startsAt: startsAtIso,
-        endsAt: endsAtIso,
-        participantIds: selectedIds,
-        publicationMode: effectiveMode
-      });
+      const result = await createManualEventAction(currentDraft(), currentParticipantId, requestId);
+      if (result.status === "error") {
+        setSubmitError(result.message);
+        return;
+      }
       setCreatedResult(result);
     } catch {
-      setSubmitError("Не удалось подготовить событие. Попробуйте ещё раз.");
+      setSubmitError("Не удалось сохранить событие. Попробуйте ещё раз.");
     } finally {
       setSubmitting(false);
     }
   }
 
-  function recheckLogistics() {
-    if (invalidTimeRange || outsideGap || !locationName.trim()) return;
+  function currentDraft(): ManualEventDraft {
+    return {
+      ...context.initialDraft,
+      title: title.trim(),
+      locationName: locationName.trim(),
+      startsAt,
+      endsAt,
+      participantIds: selectedIds,
+      publicationMode: effectiveMode
+    };
+  }
+
+  async function recheckLogistics() {
+    if (invalidTimeRange || !title.trim() || !locationName.trim()) return;
     setCheckingLogistics(true);
-    window.setTimeout(() => {
-      setCheckedSnapshot(`${startsAt}|${endsAt}|${locationName}`);
+    setSubmitError(null);
+    try {
+      const result = await checkManualEventLogisticsAction(currentDraft(), currentParticipantId);
+      if (result.status === "error") {
+        setSubmitError(result.message);
+        if (result.logistics) setLogistics(result.logistics);
+        return;
+      }
+      setLogistics(result.logistics);
+      setCheckedSnapshot(logisticsSnapshot);
+    } catch {
+      setSubmitError("Не удалось проверить событие. Попробуйте ещё раз.");
+    } finally {
       setCheckingLogistics(false);
-    }, 450);
+    }
   }
 
   return (
@@ -133,7 +165,6 @@ export function ManualEventScreen({ context }: { context: ManualEventContext }) 
             </span>
           </Field>
           {invalidTimeRange && <p className="-mt-3 text-[11px] text-coral">Время окончания должно быть позже начала</p>}
-          {outsideGap && <p className="-mt-3 text-[11px] text-coral">Событие должно помещаться в выбранное окно {context.gap.dateLabel}</p>}
           <Field label="Место">
             <input value={locationName} onChange={(event) => setLocationName(event.target.value)} className="w-full rounded bg-transparent outline-none focus-visible:ring-2 focus-visible:ring-primary/45" aria-invalid={!locationName.trim()} />
           </Field>
@@ -177,7 +208,7 @@ export function ManualEventScreen({ context }: { context: ManualEventContext }) 
                       <span className={cn("grid h-5 w-5 place-items-center rounded border", selected ? "border-primary bg-primary text-white" : "border-ink/25")}>
                         {selected && <Check aria-hidden="true" size={14} />}
                       </span>
-                      {participant.displayName}{participant.isCurrent ? " · вы" : ""}
+                      {participant.displayName}{participant.id === currentParticipantId ? " · вы" : ""}
                     </label>
                   );
                 })}
@@ -193,23 +224,31 @@ export function ManualEventScreen({ context }: { context: ManualEventContext }) 
               <ModeButton selected={effectiveMode === "vote"} disabled={onlyMe} onClick={() => setMode("vote")}>Голосованием</ModeButton>
             </div>
             {onlyMe && <p className="mt-1.5 text-[11px] text-ink/50">Личное событие добавляется сразу в план без голосования.</p>}
+            {effectiveMode === "vote" && !onlyMe && (
+              <p className="mt-1.5 text-[11px] text-ink/50">Серверное голосование подключается. Прямое добавление уже сохраняется в общий план.</p>
+            )}
           </div>
 
           {logisticsStale ? (
             <div className="flex items-center gap-2.5 rounded-[13px_13px_13px_5px] bg-accent/25 p-3 text-[12px] leading-4 text-ink">
               <p className="flex-1"><strong>Нужно перепроверить маршрут.</strong> Время или место изменились.</p>
-              <button type="button" onClick={recheckLogistics} disabled={checkingLogistics || invalidTimeRange || outsideGap} className="min-h-9 rounded-[10px] bg-white px-3 font-semibold disabled:opacity-45">{checkingLogistics ? "Проверяем…" : "Проверить"}</button>
+              <button type="button" onClick={recheckLogistics} disabled={checkingLogistics || invalidTimeRange} className="min-h-9 rounded-[10px] bg-white px-3 font-semibold disabled:opacity-45">{checkingLogistics ? "Проверяем…" : "Проверить"}</button>
             </div>
           ) : (
-            <div className="flex gap-2.5 rounded-[13px_13px_13px_5px] bg-[#e3f7ef] p-3 text-[12px] leading-4 text-[#176c59]">
+            <div role="status" className={cn(
+              "flex gap-2.5 rounded-[13px_13px_13px_5px] p-3 text-[12px] leading-4",
+              logistics.status === "valid" ? "bg-[#e3f7ef] text-[#176c59]" :
+                logistics.status === "blocking" ? "bg-coral/10 text-coral" :
+                  "bg-[#fff3cf] text-[#775913]"
+            )}>
               <CheckCircle2 aria-hidden="true" className="shrink-0" size={19} />
-              <p><strong>Маршрут проверен.</strong> {context.logistics.travelMinutes} минут в пути, вернётесь за {formatDuration(context.logistics.returnBufferMinutes)} до {context.gap.nextEventTitle}.</p>
+              <p><strong>{logistics.status === "blocking" ? "Конфликт расписания." : "Расписание проверено."}</strong> {logistics.message}</p>
             </div>
           )}
 
           <button
             type="button"
-            disabled={noParticipants || !title.trim() || !locationName.trim() || invalidTimeRange || outsideGap || logisticsStale || submitting}
+            disabled={noParticipants || !title.trim() || !locationName.trim() || invalidTimeRange || logisticsStale || logistics.status === "blocking" || logistics.status === "unchecked" || submitting}
             onClick={submit}
             className="inline-flex min-h-[52px] items-center justify-center gap-2 rounded-[14px_14px_14px_5px] bg-primary px-5 text-[15px] font-semibold text-white transition-opacity disabled:cursor-not-allowed disabled:opacity-40"
           >
@@ -218,10 +257,10 @@ export function ManualEventScreen({ context }: { context: ManualEventContext }) 
           </button>
           {submitError && <p role="alert" className="text-[12px] text-coral">{submitError}</p>}
           {createdResult && (
-            <section className="rounded-[14px] border border-success/25 bg-[#e3f7ef] p-3 text-[12px] text-[#176c59]" aria-live="polite">
-              <strong className="block text-sm">{createdResult.kind === "poll" ? "Черновик голосования подготовлен" : "Черновик события подготовлен"}</strong>
-              <p className="mt-1">Mock-режим сохранил введённые данные в текущем сценарии. Серверную запись подключит data adapter.</p>
-              <button type="button" onClick={() => router.push(createdResult.href)} className="mt-3 min-h-10 rounded-[10px] bg-primary px-4 font-semibold text-white">Продолжить</button>
+            <section className="rounded-[14px] border border-success/25 bg-[#e3f7ef] p-3 text-[12px] text-[#176c59]" role="status" aria-live="polite">
+              <strong className="block text-sm">Событие добавлено</strong>
+              <p className="mt-1">Событие сохранено в общем плане. Можно открыть его карточку.</p>
+              <button type="button" onClick={() => router.push(createdResult.href)} className="mt-3 min-h-10 rounded-[10px] bg-primary px-4 font-semibold text-white">Открыть событие</button>
             </section>
           )}
         </div>
@@ -248,8 +287,17 @@ function ModeButton({ selected, disabled, onClick, children }: { selected: boole
   );
 }
 
-function formatDuration(minutes: number) {
-  const hours = Math.floor(minutes / 60);
-  const rest = minutes % 60;
-  return `${hours} ч${rest ? ` ${rest} мин` : ""}`;
+function toDatetimeLocal(iso: string, timezone: string) {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: timezone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23"
+  }).formatToParts(new Date(iso));
+  const value = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((part) => part.type === type)?.value ?? "";
+  return `${value("year")}-${value("month")}-${value("day")}T${value("hour")}:${value("minute")}`;
 }

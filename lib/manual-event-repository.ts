@@ -7,11 +7,13 @@ export type ManualParticipant = {
 
 export type ManualEventGap = {
   id: string;
+  tripId: string;
   startsAt: string;
   endsAt: string;
   dateLabel: string;
   participantIds: string[];
   nextEventTitle: string;
+  nextRequiredAt: string;
   bufferToNextEventMinutes: number;
 };
 
@@ -25,18 +27,28 @@ export type ManualEventDraft = {
   publicationMode: "direct" | "vote";
 };
 
+export type ManualBusyInterval = {
+  eventId: string;
+  title: string;
+  startsAt: string;
+  endsAt: string;
+  participantIds: string[];
+};
+
 export type ManualEventContext = {
   presetId: "create.gap_selected";
   timezone: string;
   utcOffset: string;
   currentParticipantId: string;
   participants: ManualParticipant[];
+  busyIntervals: ManualBusyInterval[];
   gap: ManualEventGap;
   initialDraft: ManualEventDraft;
   logistics: {
-    status: "valid";
-    travelMinutes: number;
+    status: "unchecked" | "valid" | "warning" | "blocking";
+    travelMinutes: number | null;
     returnBufferMinutes: number;
+    message: string;
   };
 };
 
@@ -60,13 +72,16 @@ const contextFixture: ManualEventContext = {
     { id: "maria", displayName: "Маша", initial: "М", isCurrent: false },
     { id: "ilya", displayName: "Илья", initial: "И", isCurrent: false }
   ],
+  busyIntervals: [],
   gap: {
     id: "demo-gap",
+    tripId: "kazan-demo",
     startsAt: "2026-09-12T12:20:00+03:00",
     endsAt: "2026-09-12T18:10:00+03:00",
     dateLabel: "Сб, 12 сентября · 12:20–18:10",
     participantIds: ["nikita", "anna", "maria", "ilya"],
     nextEventTitle: "ужин",
+    nextRequiredAt: "2026-09-12T19:30:00+03:00",
     bufferToNextEventMinutes: 80
   },
   initialDraft: {
@@ -79,9 +94,10 @@ const contextFixture: ManualEventContext = {
     publicationMode: "vote"
   },
   logistics: {
-    status: "valid",
+    status: "unchecked",
     travelMinutes: 25,
-    returnBufferMinutes: 115
+    returnBufferMinutes: 115,
+    message: "Демо-проверка маршрута"
   }
 };
 
