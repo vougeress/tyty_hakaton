@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
   CalendarDays,
@@ -16,6 +16,7 @@ import type {
   CalendarItem,
   CalendarPreset
 } from "@/lib/calendar-repository";
+import { readManualCalendarItems } from "@/lib/manual-calendar-storage";
 import { cn } from "@/lib/utils";
 
 const GRID_START_HOUR = 9;
@@ -96,6 +97,7 @@ export function CalendarScreen({ preset }: { preset: CalendarPreset }) {
   const [participantFilter, setParticipantFilter] = useState("all");
   const [isChecking, setIsChecking] = useState(false);
   const [scanVisible, setScanVisible] = useState(false);
+  const [manualItems, setManualItems] = useState<CalendarItem[]>([]);
   const currentParticipant = preset.participants[0];
   const participantFilters = [
     { id: "all", label: "Все" },
@@ -105,8 +107,17 @@ export function CalendarScreen({ preset }: { preset: CalendarPreset }) {
     }))
   ];
 
+  useEffect(() => {
+    setManualItems(readManualCalendarItems());
+  }, []);
+
   const positionedEntries = useMemo(() => {
-    const itemEntries = preset.items
+    const manualItemIds = new Set(manualItems.map(({ id }) => id));
+    const mergedItems = [
+      ...preset.items.filter(({ id }) => !manualItemIds.has(id)),
+      ...manualItems
+    ];
+    const itemEntries = mergedItems
       .filter((item) => participantFilter === "all" || item.participantIds.includes(participantFilter))
       .map((item) => positionEntry(item, preset.days, "item", preset.trip.timezone))
       .filter((item): item is PositionedEntry => item !== null);
@@ -116,7 +127,7 @@ export function CalendarScreen({ preset }: { preset: CalendarPreset }) {
       .filter((item): item is PositionedEntry => item !== null);
 
     return [...itemEntries, ...gapEntries].sort((a, b) => a.entry.startsAt.localeCompare(b.entry.startsAt));
-  }, [participantFilter, preset]);
+  }, [manualItems, participantFilter, preset]);
 
   function runCheck() {
     if (isChecking) return;
