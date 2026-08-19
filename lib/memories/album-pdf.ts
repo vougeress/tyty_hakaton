@@ -1,4 +1,5 @@
 import type { PhotoRecord } from "./types";
+import { buildAlbumDocument } from "./album-template";
 
 type PdfObject = {
   id: number;
@@ -42,34 +43,15 @@ export function generateAlbumPdf(tripId: string, photos: PhotoRecord[]) {
 }
 
 function buildAlbumPages(tripId: string, photos: PhotoRecord[]) {
-  const pages: string[][] = [];
-  const grouped = new Map<string, PhotoRecord[]>();
-  for (const photo of photos) {
-    const key = photo.eventTitle ?? photo.calendarDay ?? "Без даты";
-    grouped.set(key, [...(grouped.get(key) ?? []), photo]);
-  }
+  const album = buildAlbumDocument(tripId, photos);
 
-  const title = `Trip album: ${tripId}`;
-  const summary = photos.length === 1 ? "1 photo" : `${photos.length} photos`;
-  pages.push([
-    title,
-    summary,
-    "Template: cover, grouped photo list, author, calendar binding, original download id.",
-    "Image placement can be added after choosing a PDF renderer with raster embedding."
+  return album.pages.map((page) => [
+    `tutu album: ${album.title}`,
+    `${album.photoCount} photos / ${album.pageCount} pages`,
+    `page ${page.index}: ${page.title}`,
+    `layout: ${page.layout.id} - ${page.layout.title}`,
+    ...page.photos.map((photo, index) => `${index + 1}. ${photo.eventTitle ?? photo.calendarDay ?? "no date"} / /api/photos/${photo.id}/original`)
   ]);
-
-  for (const [group, groupPhotos] of grouped) {
-    const lines = [group];
-    for (const photo of groupPhotos) {
-      lines.push(`${photo.originalFilename}`);
-      lines.push(`  author: ${photo.authorName}`);
-      lines.push(`  taken: ${photo.takenAt ?? "unknown"} (${photo.dateSource})`);
-      lines.push(`  original: /api/photos/${photo.id}/original`);
-    }
-    pages.push(lines);
-  }
-
-  return pages.length > 1 ? pages : [pages[0], ["No photos yet"]];
 }
 
 function renderTextPage(lines: string[]) {

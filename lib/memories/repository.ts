@@ -9,8 +9,6 @@ type PhotoRow = {
   storage_path: string;
   size: number;
   checksum_sha256: string;
-  author_id: string | null;
-  author_name: string;
   taken_at: string | null;
   date_source: PhotoRecord["dateSource"];
   calendar_day: string | null;
@@ -32,8 +30,8 @@ export async function insertPhoto(photo: PhotoRecord) {
       ${sqlValue(photo.storagePath)},
       ${sqlValue(photo.size)},
       ${sqlValue(photo.checksumSha256)},
-      ${sqlValue(photo.authorId)},
-      ${sqlValue(photo.authorName)},
+      NULL,
+      '',
       ${sqlValue(photo.takenAt)},
       ${sqlValue(photo.dateSource)},
       ${sqlValue(photo.calendarDay)},
@@ -46,9 +44,6 @@ export async function insertPhoto(photo: PhotoRecord) {
 
 export async function listPhotos(tripId: string, filters: PhotoListFilters = {}) {
   const where = [`trip_id = ${sqlValue(tripId)}`];
-  if (filters.authorId) {
-    where.push(`author_id = ${sqlValue(filters.authorId)}`);
-  }
   if (filters.day) {
     where.push(`calendar_day = ${sqlValue(filters.day)}`);
   }
@@ -84,8 +79,6 @@ function mapPhotoRow(row: PhotoRow): PhotoRecord {
     storagePath: row.storage_path,
     size: row.size,
     checksumSha256: row.checksum_sha256,
-    authorId: row.author_id,
-    authorName: row.author_name,
     takenAt: row.taken_at,
     dateSource: row.date_source,
     calendarDay: row.calendar_day,

@@ -9,3 +9,4 @@ test-results
 *.tsbuildinfo
 data/db
 data/uploads
+data/media
