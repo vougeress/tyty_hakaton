@@ -81,12 +81,14 @@ function CandidateCard({
   candidate,
   timezone,
   selected,
-  onToggle
+  onToggle,
+  mockMode
 }: {
   candidate: IdeaCandidate;
   timezone: string;
   selected: boolean;
   onToggle: () => void;
+  mockMode: boolean;
 }) {
   const blocked = candidate.check.status === "blocking";
   const selectable = candidate.check.status === "valid" || candidate.check.status === "warning";
@@ -135,10 +137,14 @@ function CandidateCard({
           <p className="mt-0.5 text-ink/65">{checkReason}</p>
           <p className="mt-0.5 text-ink/60">{candidate.recommendationReason}</p>
         </div>
-        {blocked ? (
+        {blocked && mockMode ? (
           <Link href="/conflicts/schedule-shift" className="shrink-0 rounded-[10px] bg-white/70 px-3 py-2 text-[11px] font-semibold text-primary-strong">
             Почему
           </Link>
+        ) : blocked ? (
+          <span className="shrink-0 rounded-[10px] bg-white/70 px-3 py-2 text-[11px] font-semibold text-[#a32e28]">
+            Недоступно
+          </span>
         ) : (
           <button
             type="button"
@@ -158,7 +164,7 @@ function CandidateCard({
   );
 }
 
-export function IdeasScreen({ preset, initialSearch }: { preset: IdeasPreset; initialSearch: IdeasSearchState }) {
+export function IdeasScreen({ preset, initialSearch, mockMode = false }: { preset: IdeasPreset; initialSearch: IdeasSearchState; mockMode?: boolean }) {
   const router = useRouter();
   const [searchState, searchAction, searchPending] = useActionState(searchIdeasAction, initialSearch);
   const [selectedIds, setSelectedIds] = useState(() => new Set(preset.selectedCandidateIds));
@@ -222,7 +228,7 @@ export function IdeasScreen({ preset, initialSearch }: { preset: IdeasPreset; in
 
   async function createPoll() {
     if (selectedCandidates.length === 0 || pollPending) return;
-    if (preset.tripId === "kazan-demo") {
+    if (mockMode) {
       router.push(`/polls/demo-poll?candidates=${encodeURIComponent(selectedCandidates.map(({ id }) => id).join(","))}`);
       return;
     }
@@ -330,6 +336,7 @@ export function IdeasScreen({ preset, initialSearch }: { preset: IdeasPreset; in
               timezone={preset.timezone}
               selected={selectedIds.has(candidate.id)}
               onToggle={() => toggleCandidate(candidate.id)}
+              mockMode={mockMode}
             />
           ))}
           {searchState.status !== "error" && visibleCandidates.length === 0 && (

@@ -28,6 +28,7 @@ import {
   type ConfirmWinnerBookingInput,
   type CreatePollInput,
   type PollSnapshot,
+  type RecheckWinnerInput,
   type ShortRevoteInput,
   type SubmitVoteInput,
   type VoteValue

@@ -11,7 +11,7 @@ export default async function PollPage({ params }: { params: Promise<{ pollId: s
   const { pollId } = await params;
   const repository = createPollRepository();
   const currentTripId = await getCurrentTripId();
-  const poll = pollId === "demo-poll"
+  const poll = process.env.E2E_MOCK_MODE === "1" && pollId === "demo-poll"
     ? (await repository.listTripPolls(currentTripId))[0]
     : await repository.getPoll(pollId).catch(() => null);
 

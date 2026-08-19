@@ -14,6 +14,7 @@ import { ButtonLink } from "@/components/ui/button";
 import type { ConflictTimelineItem, ScheduleConflict } from "@/lib/conflict-repository";
 
 export function ConflictScreen({ conflict }: { conflict: ScheduleConflict }) {
+  const isCalendarConflict = conflict.context === "calendar";
   const missingBufferMinutes = conflict.requiredBufferMinutes - conflict.actualBufferMinutes;
   const returnTime = formatTime(conflict.returnAt, conflict.timezone);
   const requiredEventTime = formatTime(conflict.nextRequiredEventAt, conflict.timezone);
@@ -33,7 +34,7 @@ export function ConflictScreen({ conflict }: { conflict: ScheduleConflict }) {
           <ArrowLeft aria-hidden="true" size={20} />
         </Link>
         <div>
-          <h1 className="text-[16px] font-semibold leading-5">Конфликт в голосовании</h1>
+          <h1 className="text-[16px] font-semibold leading-5">{isCalendarConflict ? "Конфликт в расписании" : "Конфликт в голосовании"}</h1>
           <p className="mt-1 text-[11px] text-ink/58">{conflict.checkedAtLabel}</p>
         </div>
       </header>
@@ -71,7 +72,11 @@ export function ConflictScreen({ conflict }: { conflict: ScheduleConflict }) {
         <section className="flex gap-2.5 rounded-[13px_13px_13px_5px] border border-[#f4ca70]/60 bg-[#fff1d8] p-3 text-[12px] leading-[17px] text-[#76500a]" aria-label="Причина блокировки">
           <Info aria-hidden="true" className="mt-0.5 shrink-0" size={18} />
           <p>
-            Нужен буфер минимум <strong>{conflict.requiredBufferMinutes} минут</strong>. Сейчас между возвращением в {returnTime} и ужином в {requiredEventTime} только <strong>{conflict.actualBufferMinutes} минут</strong> без учёта дороги — не хватает {missingBufferMinutes} минут.
+            {conflict.reason.code === "EVENTS_OVERLAP" ? (
+              <>События пересекаются по времени. Освободите минимум <strong>{conflict.requiredBufferMinutes} минут</strong> между ними.</>
+            ) : (
+              <>Нужен интервал минимум <strong>{conflict.requiredBufferMinutes} минут</strong>. Сейчас между окончанием в {returnTime} и следующим событием в {requiredEventTime} только <strong>{conflict.actualBufferMinutes} минут</strong> — не хватает {missingBufferMinutes} минут.</>
+            )}
           </p>
         </section>
 
@@ -82,14 +87,14 @@ export function ConflictScreen({ conflict }: { conflict: ScheduleConflict }) {
         <div className="grid gap-2.5" aria-label="Действия с конфликтом">
           <ButtonLink href={conflict.links.alternatives} className="min-h-[48px]">
             <Sparkles aria-hidden="true" size={18} />
-            Найти альтернативу
+            {isCalendarConflict ? "Вернуться к календарю" : "Найти альтернативу"}
           </ButtonLink>
           <ButtonLink href={conflict.links.adjustTime} variant="secondary" className="min-h-[48px]">
             <Clock3 aria-hidden="true" size={18} />
-            Сдвинуть время
+            {isCalendarConflict ? "Открыть следующее событие" : "Сдвинуть время"}
           </ButtonLink>
           <ButtonLink href={conflict.links.poll} variant="ghost" className="min-h-[44px]">
-            Вернуться к голосованию
+            {isCalendarConflict ? "Открыть предыдущее событие" : "Вернуться к голосованию"}
           </ButtonLink>
         </div>
       </div>

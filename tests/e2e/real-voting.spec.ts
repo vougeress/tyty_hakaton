@@ -28,6 +28,14 @@ test("два участника видят общий прогресс, меня
   await winnerLink.click();
   await expect(owner.locator('[data-preset-id="winner.rechecked"][data-recheck-status="idle"]')).toBeVisible();
   await expect(owner.getByText("Нужно перепроверить", { exact: true })).toBeVisible();
+  await owner.getByRole("button", { name: "Перепроверить цену и места" }).click();
+  await expect(owner.locator('[data-preset-id="winner.rechecked"]')).toHaveAttribute("data-recheck-status", /available|price_changed/);
+  await expect(owner.getByRole("link", { name: "Перейти на Туту" })).toBeVisible();
+  await owner.getByRole("button", { name: "Уже купили - подтвердить" }).click();
+  await expect(owner.locator('[data-recheck-status="confirmed"]')).toBeVisible();
+  await owner.reload();
+  await expect(owner.locator('[data-recheck-status="confirmed"]')).toBeVisible();
+  await expect(owner.getByText("Бронирование подтверждено", { exact: true })).toBeVisible();
 
   await ownerContext.close();
   await memberContext.close();

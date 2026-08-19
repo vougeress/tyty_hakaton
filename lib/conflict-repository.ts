@@ -10,6 +10,7 @@ export type ConflictTimelineItem = {
 
 export type ScheduleConflict = {
   id: string;
+  context?: "poll" | "calendar";
   presetId: "conflict.schedule_changed";
   logisticsStatus: "blocking";
   checkedAtLabel: string;
@@ -19,7 +20,7 @@ export type ScheduleConflict = {
     title: string;
   };
   reason: {
-    code: "RETURN_BUFFER_TOO_SMALL";
+    code: "RETURN_BUFFER_TOO_SMALL" | "EVENTS_OVERLAP";
     summary: string;
   };
   returnAt: string;

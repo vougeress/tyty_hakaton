@@ -5,6 +5,7 @@ import { createManualEventContextService } from "@/lib/manual-event-context";
 import {
   validateManualEventDraft
 } from "@/lib/manual-event-service";
+import { checkManualEventLogistics } from "@/lib/manual-event-logistics";
 import { createPostgresCalendarRepository } from "@/lib/repositories/postgres-calendar-repository";
 import { getCurrentTripId } from "@/lib/trips/current-trip";
 
@@ -37,7 +38,7 @@ export async function checkManualEventLogisticsAction(
   try {
     const context = await trustedContext(draft.gapId);
     if (!context) return { status: "error", message: "Свободное окно больше не найдено." };
-    const validation = validateManualEventDraft(context, draft, currentParticipantId);
+    const validation = await checkManualEventLogistics(context, draft, currentParticipantId);
     return validation.logistics
       ? {
           status: "success",
@@ -68,7 +69,14 @@ export async function createManualEventAction(
   try {
     const context = await trustedContext(draft.gapId);
     if (!context) return { status: "error", message: "Свободное окно больше не найдено." };
-    const validation = validateManualEventDraft(context, draft, currentParticipantId);
+    // Saving always bypasses the short-lived route cache so a prior UI check
+    // cannot authorize a now-impossible itinerary.
+    const validation = await checkManualEventLogistics(
+      context,
+      draft,
+      currentParticipantId,
+      { bypassCache: true }
+    );
     if (!validation.ok || !validation.startsAt || !validation.endsAt) {
       return { status: "error", message: validation.message, logistics: validation.logistics };
     }
@@ -90,7 +98,7 @@ export async function createManualEventAction(
         nextRequiredAt: new Date(context.gap.nextRequiredAt),
         minimumReturnBufferMinutes: context.gap.bufferToNextEventMinutes,
         idempotencyKey,
-        routeChecked: false
+        routeChecked: validation.logistics?.status === "valid" || validation.logistics?.status === "warning"
       }
     });
 
