@@ -46,7 +46,7 @@ export const screenRoutes: Record<ScreenId, string> = {
   ideas: "/calendar/gaps/demo-gap/ideas",
   vote: "/polls/demo-poll",
   conflict: "/conflicts/schedule-shift",
-  winner: "/winners/innopolis",
+  winner: "/winners/innopolis_bus",
   audit: "/audit",
   trips: "/trips",
   memories: "/memories"
