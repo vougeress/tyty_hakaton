@@ -1,9 +1,18 @@
 import "dotenv/config";
 
-import { sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 
 import { getDatabase } from "@/db/client";
-import { eventParticipants, events, participants, tripMembers, trips } from "@/db/schema";
+import {
+  candidates,
+  eventParticipants,
+  events,
+  participants,
+  polls,
+  tripMembers,
+  trips,
+  voteResponses
+} from "@/db/schema";
 
 const ids = {
   trip: "00000000-0000-4000-8000-000000000001",
@@ -17,7 +26,16 @@ const ids = {
   kremlin: "00000000-0000-4000-8000-000000001001",
   centerTransfer: "00000000-0000-4000-8000-000000001002",
   dinner: "00000000-0000-4000-8000-000000001003",
-  train: "00000000-0000-4000-8000-000000001004"
+  train: "00000000-0000-4000-8000-000000001004",
+  poll: "00000000-0000-4000-8000-000000002001",
+  pollEvent: "00000000-0000-4000-8000-000000001005",
+  candidateInnopolis: "00000000-0000-4000-8000-000000002101",
+  candidateChakChak: "00000000-0000-4000-8000-000000002102",
+  candidateSviyazhsk: "00000000-0000-4000-8000-000000002103",
+  voteNikitaInnopolis: "00000000-0000-4000-8000-000000003101",
+  voteAnnaInnopolis: "00000000-0000-4000-8000-000000003102",
+  voteMariaChakChak: "00000000-0000-4000-8000-000000003103",
+  voteIlyaSviyazhsk: "00000000-0000-4000-8000-000000003104"
 } as const;
 
 const participantIds = [ids.nikita, ids.anna, ids.maria, ids.ilya];
@@ -151,6 +169,18 @@ async function seed() {
           locationName: "Казань-Пассажирская",
           source: "tutu",
           externalRef: "demo:tutu:train-kazan-moscow"
+        },
+        {
+          id: ids.pollEvent,
+          tripId: ids.trip,
+          type: "poll",
+          status: "conflicted",
+          title: "Голосование: свободное окно",
+          startsAt: new Date("2026-09-12T12:20:00+03:00"),
+          endsAt: new Date("2026-09-12T18:10:00+03:00"),
+          locationName: "Казань",
+          source: "demo_catalog",
+          externalRef: ids.poll
         }
       ])
       .onConflictDoUpdate({
@@ -171,11 +201,123 @@ async function seed() {
     await tx
       .insert(eventParticipants)
       .values(
-        [ids.kremlin, ids.centerTransfer, ids.dinner, ids.train].flatMap((eventId) =>
+        [ids.kremlin, ids.centerTransfer, ids.dinner, ids.train, ids.pollEvent].flatMap((eventId) =>
           participantIds.map((participantId) => ({ eventId, participantId }))
         )
       )
       .onConflictDoNothing();
+
+    await tx.delete(polls).where(eq(polls.id, ids.poll));
+
+    await tx
+      .insert(polls)
+      .values({
+        id: ids.poll,
+        tripId: ids.trip,
+        title: "Куда поедем в свободное окно?",
+        status: "active",
+        closesAt: new Date("2026-09-12T18:30:00+03:00"),
+        createdByParticipantId: ids.nikita
+      })
+      .onConflictDoUpdate({
+        target: polls.id,
+        set: {
+          title: sql`excluded.title`,
+          status: sql`excluded.status`,
+          closesAt: sql`excluded.closes_at`,
+          closedAt: null,
+          winnerCandidateId: null,
+          finalistCandidateIds: [],
+          version: 1,
+          updatedAt: new Date()
+        }
+      });
+
+    await tx
+      .insert(candidates)
+      .values([
+        {
+          id: ids.candidateInnopolis,
+          pollId: ids.poll,
+          title: "Иннополис",
+          description: "Автобус туда-обратно, запас до ужина 58 минут",
+          pricePerPerson: 790,
+          source: "demo_catalog",
+          sortOrder: 0,
+          createdByParticipantId: ids.nikita
+        },
+        {
+          id: ids.candidateChakChak,
+          pollId: ids.poll,
+          title: "Музей чак-чака",
+          description: "Пешком по центру, без риска по расписанию",
+          pricePerPerson: 800,
+          source: "demo_catalog",
+          sortOrder: 1,
+          createdByParticipantId: ids.anna
+        },
+        {
+          id: ids.candidateSviyazhsk,
+          pollId: ids.poll,
+          title: "Свияжск",
+          description: "Электричка и прогулка, буфер минимальный",
+          pricePerPerson: 2300,
+          source: "demo_catalog",
+          sortOrder: 2,
+          createdByParticipantId: ids.maria
+        }
+      ])
+      .onConflictDoUpdate({
+        target: candidates.id,
+        set: {
+          title: sql`excluded.title`,
+          description: sql`excluded.description`,
+          pricePerPerson: sql`excluded.price_per_person`,
+          source: sql`excluded.source`,
+          sortOrder: sql`excluded.sort_order`,
+          updatedAt: new Date()
+        }
+      });
+
+    await tx
+      .insert(voteResponses)
+      .values([
+        {
+          id: ids.voteNikitaInnopolis,
+          pollId: ids.poll,
+          candidateId: ids.candidateInnopolis,
+          participantId: ids.nikita,
+          value: "yes"
+        },
+        {
+          id: ids.voteAnnaInnopolis,
+          pollId: ids.poll,
+          candidateId: ids.candidateInnopolis,
+          participantId: ids.anna,
+          value: "yes"
+        },
+        {
+          id: ids.voteMariaChakChak,
+          pollId: ids.poll,
+          candidateId: ids.candidateChakChak,
+          participantId: ids.maria,
+          value: "yes"
+        },
+        {
+          id: ids.voteIlyaSviyazhsk,
+          pollId: ids.poll,
+          candidateId: ids.candidateSviyazhsk,
+          participantId: ids.ilya,
+          value: "no"
+        }
+      ])
+      .onConflictDoUpdate({
+        target: voteResponses.id,
+        set: {
+          value: sql`excluded.value`,
+          updatedAt: new Date()
+        }
+      });
   });
 
   const [{ count }] = await db.select({ count: sql<number>`count(*)::int` }).from(trips);

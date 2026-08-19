@@ -49,6 +49,7 @@ function calendarParticipants(trip: TripDetails): CalendarParticipant[] {
 }
 
 function shortTitle(event: CalendarEvent) {
+  if (event.type === "poll") return event.status === "confirmed" ? event.title : "Голос";
   if (event.type === "booking") return event.title.includes("отел") ? "Отель" : "Поезд";
   if (event.title.includes("Кремл")) return "Кремль";
   if (event.title.includes("ужин")) return "Ужин";
@@ -70,7 +71,7 @@ function toCalendarItem(event: CalendarEvent, timezone: string): CalendarItem {
     ...(event.location ? { location: event.location.name } : {}),
     source: event.source,
     secondaryLabel: zonedDateParts(event.startsAt, timezone).time,
-    href: `/calendar/items/${event.id}`
+    href: event.type === "poll" && event.externalRef ? `/polls/${event.externalRef}` : `/calendar/items/${event.id}`
   };
 }
 
