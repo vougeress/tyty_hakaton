@@ -206,8 +206,8 @@ export function buildEventDetails(event: CalendarEvent, trip: TripDetails): Even
     mapLabel: event.location?.name ?? trip.title,
     mapUrl: event.location?.mapUrl ?? `https://yandex.ru/maps/?text=${encodeURIComponent(event.location?.name ?? trip.title)}`,
     routeLabel: event.source === "manual" && event.status !== "confirmed"
-      ? "Маршрут не проверен · уточните время в пути до события"
-      : "Маршрут и время в пути уточняются",
+      ? "Маршрут не проверен"
+      : "Маршрут уточняется",
     ticketCount: event.type === "booking" ? event.participantIds.length : 0,
     photoCount: 0
   };

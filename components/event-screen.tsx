@@ -5,8 +5,8 @@ import {
   Image as ImageIcon,
   MapPin,
   Navigation,
-  Route,
   TicketCheck,
+  Trash2,
   X
 } from "lucide-react";
 import type { CalendarParticipant, EventDetails } from "@/lib/calendar-repository";
@@ -21,7 +21,17 @@ function shortTime(iso: string, timezone: string) {
   }).format(new Date(iso));
 }
 
-export function EventScreen({ event, participants, calendarBackground }: { event: EventDetails; participants: CalendarParticipant[]; calendarBackground?: ReactNode }) {
+export function EventScreen({
+  event,
+  participants,
+  calendarBackground,
+  deleteEventAction
+}: {
+  event: EventDetails;
+  participants: CalendarParticipant[];
+  calendarBackground?: ReactNode;
+  deleteEventAction?: (formData: FormData) => Promise<void>;
+}) {
   const routeUnchecked = event.source === "manual" && event.status !== "confirmed";
   const statusLabel = event.status === "confirmed"
     ? "Запланировано"
@@ -78,15 +88,7 @@ export function EventScreen({ event, participants, calendarBackground }: { event
             <MapPin aria-hidden="true" size={18} />
             <span>{event.mapLabel} · <a href={event.mapUrl} target="_blank" rel="noreferrer" className="text-primary">Открыть на карте</a></span>
           </div>
-          <div className="grid grid-cols-[20px_1fr] gap-2">
-            <Route aria-hidden="true" size={18} />
-            <span>{event.routeLabel}</span>
-          </div>
         </div>
-
-        <p className="mb-3 text-[11px] text-ink/50">
-          Источник: {event.source === "tutu" ? "Туту" : "добавлено вручную"}
-        </p>
 
         <h2 className="text-[13px] font-semibold">Участники</h2>
         <div className="mt-2.5 flex items-center">
@@ -144,6 +146,19 @@ export function EventScreen({ event, participants, calendarBackground }: { event
             </button>
           )}
         </div>
+
+        {deleteEventAction && (
+          <form action={deleteEventAction} className="mt-2">
+            <input type="hidden" name="eventId" value={event.id} />
+            <button
+              type="submit"
+              className="inline-flex min-h-[46px] w-full items-center justify-center gap-2 rounded-[12px_12px_12px_5px] border border-coral/35 text-[13px] font-semibold text-coral"
+            >
+              <Trash2 aria-hidden="true" size={17} />
+              Удалить событие
+            </button>
+          </form>
+        )}
       </section>
     </main>
   );

@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { EventScreen } from "@/components/event-screen";
 import { CalendarScreen } from "@/components/calendar-screen";
+import { deleteCalendarEventAction } from "@/app/calendar/items/[itemId]/actions";
 import { createPostgresCalendarRepository } from "@/lib/repositories/postgres-calendar-repository";
 import { getCurrentTripId } from "@/lib/trips/current-trip";
 
@@ -20,6 +21,7 @@ export default async function EventPage({ params }: { params: Promise<{ itemId: 
   return <EventScreen
     event={result.event}
     participants={result.participants}
+    deleteEventAction={deleteCalendarEventAction}
     calendarBackground={<CalendarScreen preset={calendar} embedded />}
   />;
 }

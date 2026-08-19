@@ -2,7 +2,7 @@ import "server-only";
 
 import { retry, type RetryOptions } from "@/lib/travel-search/retry";
 
-const DEFAULT_TUTU_MCP_URL = "https://mcp.tutu.ru/mcp";
+const TUTU_MCP_ENDPOINT = "https://mcp.tutu.ru/mcp";
 
 type JsonRpcResponse<T> = {
   result?: T;
@@ -24,8 +24,7 @@ export class LiveTutuMcpClient implements TutuMcpClient {
   private nextId = 1;
 
   constructor(
-    private readonly endpoint = process.env.TUTU_MCP_URL ?? DEFAULT_TUTU_MCP_URL,
-    private readonly token = process.env.TUTU_MCP_TOKEN,
+    private readonly endpoint = TUTU_MCP_ENDPOINT,
     private readonly retryOptions: RetryOptions = { attempts: 2, timeoutMs: 4500, retryDelayMs: 350 }
   ) {}
 
@@ -39,16 +38,13 @@ export class LiveTutuMcpClient implements TutuMcpClient {
   }
 
   private async request<T>(method: string, params: Record<string, unknown>): Promise<T> {
-    if (!this.endpoint) throw new Error("TUTU_MCP_URL is not configured");
-
     return retry(async (signal) => {
-      const response = await fetch(this.endpoint!, {
+      const response = await fetch(this.endpoint, {
         method: "POST",
         signal,
         headers: {
           "content-type": "application/json",
-          accept: "application/json, text/event-stream",
-          ...(this.token ? { authorization: `Bearer ${this.token}` } : {})
+          accept: "application/json, text/event-stream"
         },
         body: JSON.stringify({
           jsonrpc: "2.0",

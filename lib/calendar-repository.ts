@@ -259,7 +259,7 @@ export const mockCalendarRepository: CalendarRepository = {
       dateLabel: "Событие поездки",
       mapLabel: item.location ?? "Казань",
       mapUrl: "https://yandex.ru/maps/?text=%D0%9A%D0%B0%D0%B7%D0%B0%D0%BD%D1%8C",
-      routeLabel: "Маршрут и время в пути уточняются",
+      routeLabel: "Маршрут уточняется",
       ticketCount: item.type === "booking" ? 4 : 0,
       photoCount: 0
     };
