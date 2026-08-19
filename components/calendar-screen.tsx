@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
@@ -94,6 +95,7 @@ function getEntryAriaLabel(entry: CalendarItem, timezone: string) {
 }
 
 export function CalendarScreen({ preset }: { preset: CalendarPreset }) {
+  const router = useRouter();
   const [participantFilter, setParticipantFilter] = useState("all");
   const [isChecking, setIsChecking] = useState(false);
   const [scanVisible, setScanVisible] = useState(false);
@@ -136,6 +138,7 @@ export function CalendarScreen({ preset }: { preset: CalendarPreset }) {
     window.setTimeout(() => {
       setIsChecking(false);
       setScanVisible(false);
+      router.push("/audit");
     }, 700);
   }
 
