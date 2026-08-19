@@ -232,6 +232,9 @@ export function VoteScreen({ initialPoll, participantIds, ownerId }: { initialPo
                 <Link href={`/winners/${poll.winnerCandidateId}`} className="inline-flex h-10 items-center justify-center rounded-[8px] bg-primary px-4 text-sm font-semibold text-white">
                   Открыть победителя
                 </Link>
+                <Link href={`/winners/${poll.winnerCandidateId}`} className="ml-2 inline-flex h-10 items-center justify-center rounded-[8px] border border-border bg-white px-4 text-sm font-semibold text-ink">
+                  Оформление
+                </Link>
               </div>
             ) : poll.finalistCandidateIds.length > 0 ? (
               <div className="grid gap-3">

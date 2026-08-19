@@ -36,6 +36,14 @@ export const eventSource = pgEnum("event_source", [
 ]);
 export const pollStatus = pgEnum("poll_status", ["active", "closed"]);
 export const voteValue = pgEnum("vote_value", ["yes", "maybe", "veto"]);
+export const candidateBookingStatus = pgEnum("candidate_booking_status", [
+  "idle",
+  "available",
+  "price_changed",
+  "sold_out",
+  "booking_failed",
+  "confirmed"
+]);
 
 const timestamps = {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
@@ -165,6 +173,15 @@ export const candidates = pgTable(
     travelOptionId: text("travel_option_id"),
     travelOption: jsonb("travel_option").$type<Record<string, unknown> | null>(),
     pricePerPerson: doublePrecision("price_per_person"),
+    recheckedPricePerPerson: doublePrecision("rechecked_price_per_person"),
+    availableSeats: integer("available_seats"),
+    bookingUrl: text("booking_url"),
+    bookingStatus: candidateBookingStatus("booking_status").default("idle").notNull(),
+    bookingFailureReason: text("booking_failure_reason"),
+    lastCheckedAt: timestamp("last_checked_at", { withTimezone: true }),
+    bookingConfirmedAt: timestamp("booking_confirmed_at", { withTimezone: true }),
+    bookingConfirmedByParticipantId: uuid("booking_confirmed_by_participant_id")
+      .references(() => participants.id, { onDelete: "set null" }),
     source: text("source").notNull(),
     sortOrder: integer("sort_order").default(0).notNull(),
     createdByParticipantId: uuid("created_by_participant_id")

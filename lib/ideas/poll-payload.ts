@@ -1,4 +1,5 @@
 import type { IdeaCandidate } from "./contracts";
+import type { TravelOption } from "../travel-search/contracts";
 
 export function isFreshSelectableCandidate(candidate: IdeaCandidate, now: number, maxAgeMinutes = 5) {
   if (candidate.check.status !== "valid" && candidate.check.status !== "warning") return false;
@@ -6,12 +7,12 @@ export function isFreshSelectableCandidate(candidate: IdeaCandidate, now: number
   return Number.isFinite(checkedAt) && Math.abs(now - checkedAt) <= maxAgeMinutes * 60_000;
 }
 
-export function ideaCandidateToPollCandidate(candidate: IdeaCandidate) {
+export function ideaCandidateToPollCandidate(candidate: IdeaCandidate, option?: TravelOption) {
   return {
     title: candidate.title,
     description: [candidate.check.reasons[0]?.message, candidate.recommendationReason].filter(Boolean).join(" · ").slice(0, 320),
     travelOptionId: candidate.id,
-    travelOption: {
+    travelOption: option ?? {
       startsAt: candidate.startsAt,
       endsAt: candidate.endsAt,
       travelMode: candidate.travelMode,

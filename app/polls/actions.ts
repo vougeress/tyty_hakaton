@@ -82,3 +82,47 @@ export async function closePollAction(
     };
   }
 }
+
+export async function recheckWinnerAction(
+  _previousState: PollActionState,
+  formData: FormData
+): Promise<PollActionState> {
+  try {
+    const poll = await createPollRepository().recheckWinner({
+      pollId: text(formData, "pollId"),
+      participantId: text(formData, "participantId"),
+      mode: "auto",
+      idempotencyKey: text(formData, "idempotencyKey") || undefined
+    });
+    revalidatePath(`/winners/${poll.winnerCandidateId}`);
+    revalidatePath("/calendar");
+    return { status: "success", message: "Цена и наличие перепроверены", poll };
+  } catch (error) {
+    return {
+      status: "error",
+      message: error instanceof ZodError ? "Проверьте запрос" : "Не удалось перепроверить победителя"
+    };
+  }
+}
+
+export async function confirmWinnerBookingAction(
+  _previousState: PollActionState,
+  formData: FormData
+): Promise<PollActionState> {
+  try {
+    const poll = await createPollRepository().confirmWinnerBooking({
+      pollId: text(formData, "pollId"),
+      participantId: text(formData, "participantId"),
+      bookingUrl: text(formData, "bookingUrl") || undefined,
+      idempotencyKey: text(formData, "idempotencyKey") || undefined
+    });
+    revalidatePath(`/winners/${poll.winnerCandidateId}`);
+    revalidatePath("/calendar");
+    return { status: "success", message: "Бронирование подтверждено", poll };
+  } catch (error) {
+    return {
+      status: "error",
+      message: error instanceof ZodError ? "Проверьте запрос" : "Не удалось подтвердить бронирование"
+    };
+  }
+}

@@ -26,8 +26,8 @@ test("два участника видят общий прогресс, меня
   const winnerLink = owner.getByRole("link", { name: "Открыть победителя" });
   await expect(winnerLink).toBeVisible();
   await winnerLink.click();
-  await expect(owner.locator('[data-preset-id="winner.rechecked"][data-recheck-status="stale"]')).toBeVisible();
-  await expect(owner.getByText(/Автоматическая перепроверка этого реального варианта ещё не подключена/)).toBeVisible();
+  await expect(owner.locator('[data-preset-id="winner.rechecked"][data-recheck-status="idle"]')).toBeVisible();
+  await expect(owner.getByText("Нужно перепроверить", { exact: true })).toBeVisible();
 
   await ownerContext.close();
   await memberContext.close();
