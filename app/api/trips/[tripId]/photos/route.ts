@@ -11,7 +11,6 @@ export async function GET(request: Request, context: RouteParams) {
   const { tripId } = await context.params;
   const url = new URL(request.url);
   const photos = await getTripPhotos(tripId, {
-    authorId: url.searchParams.get("authorId") ?? undefined,
     day: url.searchParams.get("day") ?? undefined,
     eventId: url.searchParams.get("eventId") ?? undefined
   });
@@ -26,8 +25,6 @@ export async function POST(request: Request, context: RouteParams) {
   const { tripId } = await context.params;
   const form = await request.formData();
   const files = form.getAll("photos").filter((value): value is File => value instanceof File);
-  const authorId = stringField(form, "authorId");
-  const authorName = stringField(form, "authorName");
   const takenAt = stringField(form, "takenAt");
 
   if (files.length === 0) {
@@ -38,8 +35,6 @@ export async function POST(request: Request, context: RouteParams) {
     const photos = await Promise.all(files.map((file) => uploadPhoto({
       tripId,
       file,
-      authorId,
-      authorName,
       takenAt
     })));
 
@@ -67,8 +62,6 @@ function toPublicPhoto(photo: PhotoRecord) {
     contentType: photo.contentType,
     size: photo.size,
     checksumSha256: photo.checksumSha256,
-    authorId: photo.authorId,
-    authorName: photo.authorName,
     takenAt: photo.takenAt,
     dateSource: photo.dateSource,
     calendarDay: photo.calendarDay,

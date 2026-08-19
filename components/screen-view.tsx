@@ -10,10 +10,9 @@ import {
   Map,
   Search,
   ShieldAlert,
-  Sparkles,
-  Upload
 } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
+import { MemoriesClient } from "@/components/memories-client";
 import { Badge, Card } from "@/components/ui/card";
 import { Button, ButtonLink } from "@/components/ui/button";
 import {
@@ -33,19 +32,21 @@ export function ScreenView({ screenId }: { screenId: ScreenId }) {
   const Icon = screen.icon;
 
   return (
-    <AppShell>
+    <AppShell hideTripControls={screenId === "memories"}>
       <div className="space-y-4">
-        <section className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2 text-xs font-semibold text-primary">
-              <Icon aria-hidden="true" size={16} />
-              <span>{screen.eyebrow}</span>
+        {screenId !== "memories" && (
+          <section className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 text-xs font-semibold text-primary">
+                <Icon aria-hidden="true" size={16} />
+                <span>{screen.eyebrow}</span>
+              </div>
+              <h1 className="mt-1 text-2xl font-bold tracking-normal text-ink">{screen.title}</h1>
+              <p className="mt-1 text-sm leading-5 text-ink/62">{screen.description}</p>
             </div>
-            <h1 className="mt-1 text-2xl font-bold tracking-normal text-ink">{screen.title}</h1>
-            <p className="mt-1 text-sm leading-5 text-ink/62">{screen.description}</p>
-          </div>
-          <Badge>{screen.preset}</Badge>
-        </section>
+            <Badge>{screen.preset}</Badge>
+          </section>
+        )}
 
         {screenId === "calendar" && <CalendarScreen />}
         {screenId === "event" && <EventScreen />}
@@ -59,7 +60,7 @@ export function ScreenView({ screenId }: { screenId: ScreenId }) {
         {screenId === "trips" && <TripsScreen />}
         {screenId === "memories" && <MemoriesScreen />}
 
-        <ScreenLinks current={screenId} />
+        {screenId !== "memories" && <ScreenLinks current={screenId} />}
       </div>
     </AppShell>
   );
@@ -388,25 +389,7 @@ function TripsScreen() {
 
 function MemoriesScreen() {
   return (
-    <>
-      <Card className="bg-[linear-gradient(135deg,#0D0B68,#6F5DF6)] text-white">
-        <Sparkles aria-hidden="true" size={24} />
-        <h2 className="mt-3 text-xl font-bold">Медиачерновик готов</h2>
-        <p className="mt-1 text-sm text-white/70">18 фото сопоставлены с событиями поездки.</p>
-      </Card>
-      <div className="grid grid-cols-3 gap-2">
-        {Array.from({ length: 6 }).map((_, index) => (
-          <div
-            key={index}
-            className="aspect-square rounded-[8px] bg-[linear-gradient(135deg,#6DD8DF,#B9EF54,#FF776D)]"
-          />
-        ))}
-      </div>
-      <Button variant="secondary" className="w-full">
-        <Upload aria-hidden="true" size={18} />
-        Загрузить фото
-      </Button>
-    </>
+    <MemoriesClient tripId="demo-trip" />
   );
 }
 

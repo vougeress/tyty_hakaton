@@ -1,9 +1,9 @@
 import { createHash, randomUUID } from "node:crypto";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { bindPhotoToCalendar } from "./calendar";
 import { extractTakenAtFromJpeg, normalizeManualTakenAt } from "./exif";
-import { uploadedPhotoPath } from "./paths";
+import { storedPhotoPath } from "./paths";
 import { insertPhoto, listPhotos } from "./repository";
 import type { PhotoListFilters, PhotoRecord, UploadPhotoInput } from "./types";
 
@@ -17,26 +17,29 @@ export async function uploadPhoto(input: UploadPhotoInput): Promise<PhotoRecord>
   const buffer = Buffer.from(await input.file.arrayBuffer());
   const id = randomUUID();
   const extension = extensionFor(input.file.name, input.file.type);
-  const storagePath = uploadedPhotoPath(input.tripId, id, extension);
+  const createdAtDate = new Date();
+  const createdAt = createdAtDate.toISOString();
+  const originalFilename = input.file.name || `${id}${extension}`;
+  const storagePath = storedPhotoPath(input.tripId, id, originalFilename, extension, createdAtDate);
   const manualDate = normalizeManualTakenAt(input.takenAt);
   const exifDate = input.file.type === "image/jpeg" ? extractTakenAtFromJpeg(buffer) : null;
   const date = manualDate ?? exifDate ?? { takenAt: null, source: "unknown" as const };
   const calendarBinding = bindPhotoToCalendar(input.tripId, date.takenAt);
-  const createdAt = new Date().toISOString();
+  const checksumSha256 = createHash("sha256").update(buffer).digest("hex");
+  const temporaryPath = `${storagePath}.tmp-${process.pid}-${Date.now()}`;
 
   await mkdir(path.dirname(storagePath), { recursive: true });
-  await writeFile(storagePath, buffer);
+  await writeFile(temporaryPath, buffer, { flag: "wx" });
+  await rename(temporaryPath, storagePath);
 
   const photo: PhotoRecord = {
     id,
     tripId: input.tripId,
-    originalFilename: input.file.name || `${id}${extension}`,
+    originalFilename,
     contentType: input.file.type,
     storagePath,
     size: buffer.byteLength,
-    checksumSha256: createHash("sha256").update(buffer).digest("hex"),
-    authorId: input.authorId?.trim() || null,
-    authorName: input.authorName?.trim() || "Неизвестный автор",
+    checksumSha256,
     takenAt: date.takenAt,
     dateSource: date.source,
     ...calendarBinding,

@@ -4,6 +4,7 @@ import { promisify } from "node:util";
 import { dbRoot, memoriesDbPath } from "./paths";
 
 const execFileAsync = promisify(execFile);
+let sqliteQueue = Promise.resolve();
 
 export function sqlValue(value: string | number | null | undefined) {
   if (value === null || value === undefined) {
@@ -18,53 +19,75 @@ export function sqlValue(value: string | number | null | undefined) {
 }
 
 export async function runSql(sql: string) {
-  await ensureDatabase();
-  await execFileAsync("sqlite3", ["-batch", "-bail", memoriesDbPath, sql], {
-    maxBuffer: 1024 * 1024
+  await enqueueSqlite(async () => {
+    await ensureDatabase();
+    await execSql(sql);
   });
 }
 
 export async function allSql<T>(sql: string): Promise<T[]> {
-  await ensureDatabase();
-  const { stdout } = await execFileAsync("sqlite3", ["-json", "-batch", "-bail", memoriesDbPath, sql], {
-    maxBuffer: 5 * 1024 * 1024
-  });
+  return enqueueSqlite(async () => {
+    await ensureDatabase();
+    const { stdout } = await execFileAsync("sqlite3", [
+      "-json",
+      "-batch",
+      "-bail",
+      "-cmd",
+      ".timeout 5000",
+      memoriesDbPath,
+      sql
+    ], {
+      maxBuffer: 5 * 1024 * 1024
+    });
 
-  const trimmed = stdout.trim();
-  return trimmed ? JSON.parse(trimmed) as T[] : [];
+    const trimmed = stdout.trim();
+    return trimmed ? JSON.parse(trimmed) as T[] : [];
+  });
 }
 
 async function ensureDatabase() {
   await mkdir(dbRoot, { recursive: true });
+  await execSql(`
+    PRAGMA journal_mode = WAL;
+    CREATE TABLE IF NOT EXISTS photos (
+      id TEXT PRIMARY KEY,
+      trip_id TEXT NOT NULL,
+      original_filename TEXT NOT NULL,
+      content_type TEXT NOT NULL,
+      storage_path TEXT NOT NULL,
+      size INTEGER NOT NULL,
+      checksum_sha256 TEXT NOT NULL,
+      author_id TEXT,
+      author_name TEXT NOT NULL,
+      taken_at TEXT,
+      date_source TEXT NOT NULL,
+      calendar_day TEXT,
+      event_id TEXT,
+      event_title TEXT,
+      created_at TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_photos_trip_created ON photos(trip_id, created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_photos_trip_author ON photos(trip_id, author_id);
+    CREATE INDEX IF NOT EXISTS idx_photos_trip_day ON photos(trip_id, calendar_day);
+    CREATE INDEX IF NOT EXISTS idx_photos_trip_event ON photos(trip_id, event_id);
+  `);
+}
+
+async function execSql(sql: string) {
   await execFileAsync("sqlite3", [
     "-batch",
     "-bail",
+    "-cmd",
+    ".timeout 5000",
     memoriesDbPath,
-    `
-      PRAGMA journal_mode = WAL;
-      CREATE TABLE IF NOT EXISTS photos (
-        id TEXT PRIMARY KEY,
-        trip_id TEXT NOT NULL,
-        original_filename TEXT NOT NULL,
-        content_type TEXT NOT NULL,
-        storage_path TEXT NOT NULL,
-        size INTEGER NOT NULL,
-        checksum_sha256 TEXT NOT NULL,
-        author_id TEXT,
-        author_name TEXT NOT NULL,
-        taken_at TEXT,
-        date_source TEXT NOT NULL,
-        calendar_day TEXT,
-        event_id TEXT,
-        event_title TEXT,
-        created_at TEXT NOT NULL
-      );
-      CREATE INDEX IF NOT EXISTS idx_photos_trip_created ON photos(trip_id, created_at DESC);
-      CREATE INDEX IF NOT EXISTS idx_photos_trip_author ON photos(trip_id, author_id);
-      CREATE INDEX IF NOT EXISTS idx_photos_trip_day ON photos(trip_id, calendar_day);
-      CREATE INDEX IF NOT EXISTS idx_photos_trip_event ON photos(trip_id, event_id);
-    `
+    sql
   ], {
     maxBuffer: 1024 * 1024
   });
+}
+
+async function enqueueSqlite<T>(operation: () => Promise<T>) {
+  const run = sqliteQueue.then(operation, operation);
+  sqliteQueue = run.then(() => undefined, () => undefined);
+  return run;
 }

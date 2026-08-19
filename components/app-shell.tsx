@@ -4,7 +4,12 @@ import { BottomNav } from "@/components/bottom-nav";
 import { MockModeToggle } from "@/components/mock-mode-toggle";
 import { ButtonLink } from "@/components/ui/button";
 
-export function AppShell({ children }: Readonly<{ children: React.ReactNode }>) {
+type AppShellProps = Readonly<{
+  children: React.ReactNode;
+  hideTripControls?: boolean;
+}>;
+
+export function AppShell({ children, hideTripControls = false }: AppShellProps) {
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-[430px] flex-col bg-page shadow-shell sm:my-6 sm:min-h-[760px] sm:overflow-hidden sm:rounded-[28px]">
       <header className="border-b border-border bg-surface px-4 pb-3 pt-4">
@@ -27,18 +32,20 @@ export function AppShell({ children }: Readonly<{ children: React.ReactNode }>) 
             </Link>
           </div>
         </div>
-        <div className="mt-3 flex items-center gap-2">
-          <button
-            type="button"
-            className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-[12px] border border-border bg-muted px-3 text-sm font-semibold text-ink"
-          >
-            <SlidersHorizontal aria-hidden="true" size={17} />
-            Все участники
-          </button>
-          <ButtonLink href="/audit" className="h-10 px-3">
-            Проверить
-          </ButtonLink>
-        </div>
+        {!hideTripControls && (
+          <div className="mt-3 flex items-center gap-2">
+            <button
+              type="button"
+              className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-[12px] border border-border bg-muted px-3 text-sm font-semibold text-ink"
+            >
+              <SlidersHorizontal aria-hidden="true" size={17} />
+              Все участники
+            </button>
+            <ButtonLink href="/audit" className="h-10 px-3">
+              Проверить
+            </ButtonLink>
+          </div>
+        )}
       </header>
       <div className="flex-1 overflow-y-auto px-4 py-4">{children}</div>
       <BottomNav />

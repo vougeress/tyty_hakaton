@@ -14,15 +14,12 @@ export type PhotoRecord = PhotoCalendarBinding & {
   storagePath: string;
   size: number;
   checksumSha256: string;
-  authorId: string | null;
-  authorName: string;
   takenAt: string | null;
   dateSource: PhotoDateSource;
   createdAt: string;
 };
 
 export type PhotoListFilters = {
-  authorId?: string;
   day?: string;
   eventId?: string;
 };
@@ -30,7 +27,5 @@ export type PhotoListFilters = {
 export type UploadPhotoInput = {
   tripId: string;
   file: File;
-  authorId?: string;
-  authorName?: string;
   takenAt?: string;
 };
