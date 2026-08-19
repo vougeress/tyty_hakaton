@@ -214,6 +214,36 @@ export function TripsScreen({ trip }: { trip: TripsViewModel }) {
 
         <section>
           <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-base font-semibold">Участники</h2>
+            <Users aria-hidden="true" size={18} className="text-primary" />
+          </div>
+          <div className="grid gap-2 rounded-[8px] border border-border bg-white p-3 shadow-card" aria-label="Выберите свой профиль">
+            {trip.participants.map((participant) => {
+              const selected = participant.id === currentParticipant?.id;
+              return (
+                <button
+                  key={participant.id}
+                  type="button"
+                  aria-pressed={selected}
+                  onClick={() => saveCurrentParticipantId(participant.id)}
+                  className={cn(
+                    "flex min-h-11 items-center gap-3 rounded-[8px] border px-3 text-left transition",
+                    selected ? "border-primary bg-primary/10" : "border-border bg-white"
+                  )}
+                >
+                  <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-primary text-xs font-semibold text-white">
+                    {participant.displayName.slice(0, 1).toUpperCase()}
+                  </span>
+                  <span className="min-w-0 flex-1 truncate text-sm font-semibold">{participant.displayName}</span>
+                  <span className="text-[11px] text-ink/55">{selected ? "Я" : participant.role === "owner" ? "Организатор" : "Участник"}</span>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+
+        <section>
+          <div className="mb-3 flex items-center justify-between">
             <h2 className="text-base font-semibold">Вступить по ссылке или коду</h2>
             <UserPlus aria-hidden="true" size={18} className="text-primary" />
           </div>

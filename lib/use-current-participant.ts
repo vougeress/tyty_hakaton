@@ -10,22 +10,24 @@ import { PARTICIPANT_STORAGE_KEY } from "@/lib/trips/constants";
 
 export function useCurrentParticipantId(
   participantIds: readonly string[],
-  fallbackParticipantId?: string
+  fallbackParticipantId?: string,
+  fallbackToFirst = true
 ) {
   const participantKey = participantIds.join("\u0000");
   const stableParticipantIds = useMemo(() => participantKey.split("\u0000").filter(Boolean), [participantKey]);
-  const fallback = resolveCurrentParticipantId(stableParticipantIds, null, fallbackParticipantId);
+  const fallback = fallbackToFirst
+    ? resolveCurrentParticipantId(stableParticipantIds, null, fallbackParticipantId)
+    : null;
   const [participantId, setParticipantId] = useState<string | null>(fallback);
 
   useEffect(() => {
     const syncParticipant = () => {
-      setParticipantId(
-        resolveCurrentParticipantId(
-          stableParticipantIds,
-          window.localStorage.getItem(PARTICIPANT_STORAGE_KEY),
-          fallbackParticipantId
-        )
-      );
+      const storedParticipantId = window.localStorage.getItem(PARTICIPANT_STORAGE_KEY);
+      setParticipantId(fallbackToFirst
+        ? resolveCurrentParticipantId(stableParticipantIds, storedParticipantId, fallbackParticipantId)
+        : storedParticipantId && stableParticipantIds.includes(storedParticipantId)
+          ? storedParticipantId
+          : null);
     };
 
     syncParticipant();
@@ -35,7 +37,7 @@ export function useCurrentParticipantId(
       window.removeEventListener("storage", syncParticipant);
       window.removeEventListener(PARTICIPANT_CHANGED_EVENT, syncParticipant);
     };
-  }, [fallbackParticipantId, stableParticipantIds]);
+  }, [fallbackParticipantId, fallbackToFirst, stableParticipantIds]);
 
   return participantId;
 }

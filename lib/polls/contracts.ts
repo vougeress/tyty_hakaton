@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const voteValueSchema = z.enum(["yes", "no", "maybe"]);
+export const voteValueSchema = z.enum(["yes", "maybe", "veto"]);
 
 const candidateInputSchema = z.object({
   title: z.string().trim().min(1).max(120),
@@ -41,11 +41,17 @@ export const closePollInputSchema = z.object({
   idempotencyKey: z.string().trim().min(8).max(120).optional()
 });
 
+export const shortRevoteInputSchema = z.object({
+  pollId: z.uuid(),
+  participantId: z.uuid()
+});
+
 export type VoteValue = z.infer<typeof voteValueSchema>;
 export type CreatePollInput = z.infer<typeof createPollInputSchema>;
 export type AddCandidateInput = z.infer<typeof addCandidateInputSchema>;
 export type SubmitVoteInput = z.infer<typeof submitVoteInputSchema>;
 export type ClosePollInput = z.infer<typeof closePollInputSchema>;
+export type ShortRevoteInput = z.infer<typeof shortRevoteInputSchema>;
 
 export type CandidateTally = Record<VoteValue, number>;
 
