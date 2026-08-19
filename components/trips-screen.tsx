@@ -217,17 +217,14 @@ export function TripsScreen({ trip }: { trip: TripsViewModel }) {
             <h2 className="text-base font-semibold">Участники</h2>
             <Users aria-hidden="true" size={18} className="text-primary" />
           </div>
-          <div className="grid gap-2 rounded-[8px] border border-border bg-white p-3 shadow-card" aria-label="Выберите свой профиль">
+          <div className="grid gap-2 rounded-[8px] border border-border bg-white p-3 shadow-card" aria-label="Участники поездки">
             {trip.participants.map((participant) => {
               const selected = participant.id === currentParticipant?.id;
               return (
-                <button
+                <div
                   key={participant.id}
-                  type="button"
-                  aria-pressed={selected}
-                  onClick={() => saveCurrentParticipantId(participant.id)}
                   className={cn(
-                    "flex min-h-11 items-center gap-3 rounded-[8px] border px-3 text-left transition",
+                    "flex min-h-11 items-center gap-3 rounded-[8px] border px-3 text-left",
                     selected ? "border-primary bg-primary/10" : "border-border bg-white"
                   )}
                 >
@@ -235,8 +232,8 @@ export function TripsScreen({ trip }: { trip: TripsViewModel }) {
                     {participant.displayName.slice(0, 1).toUpperCase()}
                   </span>
                   <span className="min-w-0 flex-1 truncate text-sm font-semibold">{participant.displayName}</span>
-                  <span className="text-[11px] text-ink/55">{selected ? "Я" : participant.role === "owner" ? "Организатор" : "Участник"}</span>
-                </button>
+                  <span className="text-[11px] text-ink/55">{selected ? "Это вы" : participant.role === "owner" ? "Организатор" : "Участник"}</span>
+                </div>
               );
             })}
           </div>

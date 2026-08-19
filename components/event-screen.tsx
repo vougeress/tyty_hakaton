@@ -115,26 +115,34 @@ export function EventScreen({ event, participants, calendarBackground }: { event
           </div>
         </div>
 
-        <div className="mt-3 grid grid-cols-2 gap-2">
-          <div className="flex min-h-12 items-center gap-2 rounded-[12px_12px_12px_5px] bg-page px-3 text-[12px]">
-            <TicketCheck aria-hidden="true" size={18} />
-            <span>Билеты<br />{event.ticketCount} файла</span>
+        {(event.ticketCount > 0 || event.photoCount > 0) && (
+          <div className="mt-3 grid grid-cols-[repeat(auto-fit,minmax(140px,1fr))] gap-2">
+            {event.ticketCount > 0 && (
+              <div className="flex min-h-12 items-center gap-2 rounded-[12px_12px_12px_5px] bg-page px-3 text-[12px]">
+                <TicketCheck aria-hidden="true" size={18} />
+                <span>Билеты<br />{event.ticketCount} файла</span>
+              </div>
+            )}
+            {event.photoCount > 0 && (
+              <div className="flex min-h-12 items-center gap-2 rounded-[12px_12px_12px_5px] bg-page px-3 text-[12px]">
+                <ImageIcon aria-hidden="true" size={18} />
+                <span>Фотографии<br />{event.photoCount} снимков</span>
+              </div>
+            )}
           </div>
-          <div className="flex min-h-12 items-center gap-2 rounded-[12px_12px_12px_5px] bg-page px-3 text-[12px]">
-            <ImageIcon aria-hidden="true" size={18} />
-            <span>Фотографии<br />{event.photoCount} снимков</span>
-          </div>
-        </div>
+        )}
 
-        <div className="mt-3 grid grid-cols-2 gap-2">
+        <div className={cn("mt-3 grid gap-2", event.ticketCount > 0 && "grid-cols-2")}>
           <a href={event.mapUrl} target="_blank" rel="noreferrer" className="inline-flex min-h-[46px] items-center justify-center gap-2 rounded-[12px_12px_12px_5px] border border-border text-[13px] font-semibold">
             <Navigation aria-hidden="true" size={17} />
             Маршрут
           </a>
-          <button type="button" className="inline-flex min-h-[46px] items-center justify-center gap-2 rounded-[12px_12px_12px_5px] bg-primary text-[13px] font-semibold text-white">
-            <TicketCheck aria-hidden="true" size={17} />
-            Открыть билет
-          </button>
+          {event.ticketCount > 0 && (
+            <button type="button" className="inline-flex min-h-[46px] items-center justify-center gap-2 rounded-[12px_12px_12px_5px] bg-primary text-[13px] font-semibold text-white">
+              <TicketCheck aria-hidden="true" size={17} />
+              Открыть билет
+            </button>
+          )}
         </div>
       </section>
     </main>

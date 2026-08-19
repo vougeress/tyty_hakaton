@@ -2,11 +2,13 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
   CalendarDays,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Images,
   Plus,
   Route,
@@ -22,9 +24,10 @@ import { readManualCalendarItems } from "@/lib/manual-calendar-storage";
 import { useCurrentParticipantId } from "@/lib/use-current-participant";
 import { cn } from "@/lib/utils";
 
-const GRID_START_HOUR = 9;
-const GRID_END_HOUR = 22;
+const GRID_START_HOUR = 0;
+const GRID_END_HOUR = 24;
 const PX_PER_HOUR = 36;
+const GRID_HEIGHT = (GRID_END_HOUR - GRID_START_HOUR) * PX_PER_HOUR;
 
 type PositionedEntry =
   | { kind: "item"; entry: CalendarItem; column: number; top: number; height: number }
@@ -61,11 +64,24 @@ function positionEntry(
   const gridStart = GRID_START_HOUR * 60;
   const gridEnd = GRID_END_HOUR * 60;
   const visibleStart = Math.max(start.minutes, gridStart);
-  const visibleEnd = Math.min(end.minutes, gridEnd);
+  const visibleEnd = Math.min(end.day === start.day ? end.minutes : gridEnd, gridEnd);
   const top = ((visibleStart - gridStart) / 60) * PX_PER_HOUR;
   const height = Math.max(32, ((visibleEnd - visibleStart) / 60) * PX_PER_HOUR);
 
   return { kind, entry, column, top, height } as PositionedEntry;
+}
+
+function shiftedIsoDate(isoDate: string, days: number) {
+  const date = new Date(`${isoDate}T00:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
+function weekLabel(days: CalendarPreset["days"]) {
+  const first = new Date(`${days[0].isoDate}T00:00:00Z`);
+  const last = new Date(`${days[6].isoDate}T00:00:00Z`);
+  const formatter = new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "short", timeZone: "UTC" });
+  return `${formatter.format(first)} — ${formatter.format(last)}`;
 }
 
 function participantEntryClasses(tone: CalendarParticipant["tone"]) {
@@ -114,6 +130,9 @@ export function CalendarScreen({
   const [isChecking, setIsChecking] = useState(false);
   const [scanVisible, setScanVisible] = useState(false);
   const [manualItems, setManualItems] = useState<CalendarItem[]>([]);
+  const [weekOffset, setWeekOffset] = useState(0);
+  const gridScrollRef = useRef<HTMLDivElement>(null);
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
   const currentParticipantId = useCurrentParticipantId(preset.participants.map(({ id }) => id));
   const currentParticipant = preset.participants.find(({ id }) => id === currentParticipantId) ?? preset.participants[0];
   const participantFilters = [
@@ -127,11 +146,27 @@ export function CalendarScreen({
           : participant.shortName
     }))
   ];
-  const addHref = preset.gaps[0]?.href;
+  const selectedDate = preset.days.find(({ isCurrent }) => isCurrent)?.isoDate;
+  const visibleDays = useMemo(() => preset.days.map((day) => {
+    const isoDate = shiftedIsoDate(day.isoDate, weekOffset * 7);
+    const date = new Date(`${isoDate}T00:00:00Z`);
+    return {
+      label: ["Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"][date.getUTCDay()],
+      date: date.getUTCDate(),
+      isoDate,
+      ...(isoDate === selectedDate ? { isCurrent: true } : {})
+    };
+  }), [preset.days, selectedDate, weekOffset]);
+  const visibleDateIds = new Set(visibleDays.map(({ isoDate }) => isoDate));
+  const addHref = preset.gaps.find((gap) => visibleDateIds.has(dateParts(gap.startsAt, preset.trip.timezone).day))?.href;
 
   useEffect(() => {
     setManualItems(mockMode ? readManualCalendarItems() : []);
   }, [mockMode]);
+
+  useEffect(() => {
+    if (gridScrollRef.current) gridScrollRef.current.scrollTop = 8 * PX_PER_HOUR;
+  }, [weekOffset]);
 
   const positionedEntries = useMemo(() => {
     const manualItemIds = new Set(manualItems.map(({ id }) => id));
@@ -141,15 +176,31 @@ export function CalendarScreen({
     ];
     const itemEntries = mergedItems
       .filter((item) => participantFilter === "all" || item.participantIds.includes(participantFilter))
-      .map((item) => positionEntry(item, preset.days, "item", preset.trip.timezone))
+      .map((item) => positionEntry(item, visibleDays, "item", preset.trip.timezone))
       .filter((item): item is PositionedEntry => item !== null);
     const gapEntries = preset.gaps
       .filter((gap) => participantFilter === "all" || gap.participantIds.includes(participantFilter))
-      .map((gap) => positionEntry(gap, preset.days, "gap", preset.trip.timezone))
+      .map((gap) => positionEntry(gap, visibleDays, "gap", preset.trip.timezone))
       .filter((item): item is PositionedEntry => item !== null);
 
     return [...itemEntries, ...gapEntries].sort((a, b) => a.entry.startsAt.localeCompare(b.entry.startsAt));
-  }, [manualItems, participantFilter, preset]);
+  }, [manualItems, participantFilter, preset, visibleDays]);
+
+  function handleTouchStart(event: React.TouchEvent) {
+    const touch = event.touches[0];
+    touchStartRef.current = { x: touch.clientX, y: touch.clientY };
+  }
+
+  function handleTouchEnd(event: React.TouchEvent) {
+    const start = touchStartRef.current;
+    const touch = event.changedTouches[0];
+    touchStartRef.current = null;
+    if (!start) return;
+    const deltaX = touch.clientX - start.x;
+    const deltaY = touch.clientY - start.y;
+    if (Math.abs(deltaX) < 60 || Math.abs(deltaX) <= Math.abs(deltaY)) return;
+    setWeekOffset((current) => current + (deltaX < 0 ? 1 : -1));
+  }
 
   function runCheck() {
     if (isChecking) return;
@@ -166,7 +217,7 @@ export function CalendarScreen({
     <main
       className={cn(
         "mx-auto flex w-full max-w-[430px] flex-col overflow-hidden bg-surface text-ink",
-        embedded ? "min-h-dvh" : "min-h-dvh shadow-shell sm:my-6 sm:min-h-[760px] sm:rounded-[28px]"
+        embedded ? "h-dvh" : "h-dvh shadow-shell sm:my-6 sm:h-[760px] sm:rounded-[28px]"
       )}
       data-preset-id={preset.id}
     >
@@ -231,9 +282,17 @@ export function CalendarScreen({
         </button>
       </div>
 
+      <div className="flex h-10 shrink-0 items-center justify-between border-b border-border bg-white px-3">
+        <button type="button" onClick={() => setWeekOffset((value) => value - 1)} aria-label="Предыдущая неделя" className="grid h-8 w-8 place-items-center rounded-full hover:bg-page"><ChevronLeft aria-hidden="true" size={18} /></button>
+        <button type="button" onClick={() => setWeekOffset(0)} className="rounded-full px-3 py-1 text-[12px] font-semibold text-ink" aria-label="Вернуться к неделе поездки">
+          {weekLabel(visibleDays)}
+        </button>
+        <button type="button" onClick={() => setWeekOffset((value) => value + 1)} aria-label="Следующая неделя" className="grid h-8 w-8 place-items-center rounded-full hover:bg-page"><ChevronRight aria-hidden="true" size={18} /></button>
+      </div>
+
       <div className="grid h-[46px] shrink-0 grid-cols-[30px_repeat(7,minmax(0,1fr))] border-b border-border">
         <span />
-        {preset.days.map((day) => (
+        {visibleDays.map((day) => (
           <div
             key={day.isoDate}
             className="grid place-content-center place-items-center gap-0.5 border-l border-border text-[11px] text-ink/58"
@@ -251,10 +310,11 @@ export function CalendarScreen({
         ))}
       </div>
 
-      <div className="relative min-h-0 flex-1 overflow-y-auto pb-[76px]">
+      <div ref={gridScrollRef} className="relative min-h-0 flex-1 overflow-y-auto overscroll-contain pb-[76px]" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
         <div
-          className="relative h-[472px] min-h-[472px] bg-surface before:pointer-events-none before:absolute before:inset-y-0 before:left-[30px] before:right-0 before:bg-[repeating-linear-gradient(to_bottom,transparent_0,transparent_35px,var(--color-border)_36px),repeating-linear-gradient(to_right,transparent_0,transparent_calc((100%/7)-1px),var(--color-border)_calc(100%/7))]"
-          aria-label="События недели с 7 по 13 сентября"
+          className="relative bg-surface before:pointer-events-none before:absolute before:inset-y-0 before:left-[30px] before:right-0 before:bg-[repeating-linear-gradient(to_bottom,transparent_0,transparent_35px,var(--color-border)_36px),repeating-linear-gradient(to_right,transparent_0,transparent_calc((100%/7)-1px),var(--color-border)_calc(100%/7))]"
+          style={{ height: `${GRID_HEIGHT}px`, minHeight: `${GRID_HEIGHT}px` }}
+          aria-label={`События недели ${weekLabel(visibleDays)}`}
         >
           {positionedEntries.length === 0 && (
             <div className="absolute inset-x-12 top-24 z-[3] rounded-[8px] border border-dashed border-primary/35 bg-white/95 p-4 text-center shadow-card">
@@ -267,7 +327,7 @@ export function CalendarScreen({
               )}
             </div>
           )}
-          {[9, 12, 15, 18, 21].map((hour) => (
+          {[0, 3, 6, 9, 12, 15, 18, 21].map((hour) => (
             <span
               key={hour}
               className="absolute left-1 -translate-y-[7px] text-[11px] text-ink/58"
