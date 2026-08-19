@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray } from "drizzle-orm";
+import { and, asc, desc, eq, inArray } from "drizzle-orm";
 
 import { getDatabase } from "@/db/client";
 import { eventParticipants, events, participants, tripMembers, trips } from "@/db/schema";
@@ -52,6 +52,16 @@ export class DrizzleTripRepository implements TripRepository {
       .where(eq(trips.inviteCode, inviteCode))
       .limit(1);
     return trip ? this.withParticipants(trip) : null;
+  }
+
+  async listArchived(limit = 10): Promise<TripDetails[]> {
+    const rows = await getDatabase()
+      .select()
+      .from(trips)
+      .where(eq(trips.status, "archived"))
+      .orderBy(desc(trips.startsAt))
+      .limit(limit);
+    return Promise.all(rows.map((trip) => this.withParticipants(trip)));
   }
 
   async join(input: JoinTripInput): Promise<TripDetails> {
@@ -108,6 +118,18 @@ export class DrizzleTripRepository implements TripRepository {
     }
 
     return eventRows.map((event) => this.toCalendarEvent(event, attendeesByEvent.get(event.id) ?? []));
+  }
+
+  async findEventById(id: string): Promise<CalendarEvent | null> {
+    const [event] = await getDatabase().select().from(events).where(eq(events.id, id)).limit(1);
+    if (!event) return null;
+
+    const attendeeRows = await getDatabase()
+      .select({ participantId: eventParticipants.participantId })
+      .from(eventParticipants)
+      .where(eq(eventParticipants.eventId, id));
+
+    return this.toCalendarEvent(event, attendeeRows.map(({ participantId }) => participantId));
   }
 
   async createEvent(input: CreateEventInput): Promise<CalendarEvent> {

@@ -26,9 +26,19 @@ type PositionedEntry =
   | { kind: "item"; entry: CalendarItem; column: number; top: number; height: number }
   | { kind: "gap"; entry: CalendarGap; column: number; top: number; height: number };
 
-function dateParts(iso: string) {
-  const day = iso.slice(0, 10);
-  const time = iso.slice(11, 16);
+function dateParts(iso: string, timezone: string) {
+  const values = new Intl.DateTimeFormat("en-CA", {
+    timeZone: timezone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23"
+  }).formatToParts(new Date(iso));
+  const get = (type: Intl.DateTimeFormatPartTypes) => values.find((part) => part.type === type)?.value ?? "";
+  const day = `${get("year")}-${get("month")}-${get("day")}`;
+  const time = `${get("hour")}:${get("minute")}`;
   const [hour, minute] = time.split(":").map(Number);
   return { day, minutes: hour * 60 + minute, time };
 }
@@ -36,10 +46,11 @@ function dateParts(iso: string) {
 function positionEntry(
   entry: CalendarItem | CalendarGap,
   days: CalendarPreset["days"],
-  kind: PositionedEntry["kind"]
+  kind: PositionedEntry["kind"],
+  timezone: string
 ): PositionedEntry | null {
-  const start = dateParts(entry.startsAt);
-  const end = dateParts(entry.endsAt);
+  const start = dateParts(entry.startsAt, timezone);
+  const end = dateParts(entry.endsAt, timezone);
   const column = days.findIndex(({ isoDate }) => isoDate === start.day);
   if (column < 0) return null;
 
@@ -75,8 +86,8 @@ function entryClasses(entry: CalendarItem) {
   return "border border-cyan bg-cyan/30 text-ink";
 }
 
-function getEntryAriaLabel(entry: CalendarItem) {
-  const start = dateParts(entry.startsAt).time;
+function getEntryAriaLabel(entry: CalendarItem, timezone: string) {
+  const start = dateParts(entry.startsAt, timezone).time;
   const status = entry.status === "conflicted" ? ", конфликт" : "";
   return `${entry.title}, ${start}${status}`;
 }
@@ -85,15 +96,23 @@ export function CalendarScreen({ preset }: { preset: CalendarPreset }) {
   const [participantFilter, setParticipantFilter] = useState("all");
   const [isChecking, setIsChecking] = useState(false);
   const [scanVisible, setScanVisible] = useState(false);
+  const currentParticipant = preset.participants[0];
+  const participantFilters = [
+    { id: "all", label: "Все" },
+    ...preset.participants.map((participant) => ({
+      id: participant.id,
+      label: participant.id === currentParticipant?.id ? "Я" : participant.shortName
+    }))
+  ];
 
   const positionedEntries = useMemo(() => {
     const itemEntries = preset.items
       .filter((item) => participantFilter === "all" || item.participantIds.includes(participantFilter))
-      .map((item) => positionEntry(item, preset.days, "item"))
+      .map((item) => positionEntry(item, preset.days, "item", preset.trip.timezone))
       .filter((item): item is PositionedEntry => item !== null);
     const gapEntries = preset.gaps
       .filter((gap) => participantFilter === "all" || gap.participantIds.includes(participantFilter))
-      .map((gap) => positionEntry(gap, preset.days, "gap"))
+      .map((gap) => positionEntry(gap, preset.days, "gap", preset.trip.timezone))
       .filter((item): item is PositionedEntry => item !== null);
 
     return [...itemEntries, ...gapEntries].sort((a, b) => a.entry.startsAt.localeCompare(b.entry.startsAt));
@@ -131,27 +150,23 @@ export function CalendarScreen({ preset }: { preset: CalendarPreset }) {
         </Link>
         <Link
           href="/trips"
-          aria-label="Профиль Никиты"
+          aria-label={`Профиль ${currentParticipant?.displayName ?? "участника"}`}
           className="grid h-[38px] w-[38px] shrink-0 place-items-center rounded-full bg-primary text-[13px] font-semibold text-white"
         >
-          Н
+          {currentParticipant?.initial ?? "?"}
         </Link>
       </header>
 
       <div className="flex min-h-[51px] items-center justify-between gap-2 border-y border-border px-3 py-2.5">
-        <div className="flex min-w-0 gap-1.5" aria-label="Фильтр участников">
-          {[
-            { id: "all", label: "Все" },
-            { id: "nikita", label: "Я" },
-            { id: "anna", label: "Аня" }
-          ].map((filter) => (
+        <div className="flex min-w-0 flex-1 gap-1.5 overflow-x-auto pr-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label="Фильтр участников">
+          {participantFilters.map((filter) => (
             <button
               key={filter.id}
               type="button"
               aria-pressed={participantFilter === filter.id}
               onClick={() => setParticipantFilter(filter.id)}
               className={cn(
-                "min-h-[30px] rounded-full border border-border bg-white px-3 text-[11px] font-semibold transition",
+                "min-h-[30px] shrink-0 rounded-full border border-border bg-white px-3 text-[11px] font-semibold transition",
                 participantFilter === filter.id && "border-primary bg-primary/10 text-primary-strong"
               )}
             >
@@ -196,6 +211,13 @@ export function CalendarScreen({ preset }: { preset: CalendarPreset }) {
           className="relative h-[472px] min-h-[472px] bg-surface before:pointer-events-none before:absolute before:inset-y-0 before:left-[30px] before:right-0 before:bg-[repeating-linear-gradient(to_bottom,transparent_0,transparent_35px,var(--color-border)_36px),repeating-linear-gradient(to_right,transparent_0,transparent_calc((100%/7)-1px),var(--color-border)_calc(100%/7))]"
           aria-label="События недели с 7 по 13 сентября"
         >
+          {positionedEntries.length === 0 && (
+            <div className="absolute inset-x-12 top-24 z-[3] rounded-[8px] border border-dashed border-primary/35 bg-white/95 p-4 text-center shadow-card">
+              <p className="text-sm font-semibold">План пока пуст</p>
+              <p className="mt-1 text-xs text-ink/58">Добавьте первое событие поездки.</p>
+              <Link href="/calendar/gaps/demo-gap/manual" className="mt-3 inline-flex h-9 items-center rounded-[8px] bg-primary px-3 text-xs font-semibold text-white">Добавить событие</Link>
+            </div>
+          )}
           {[9, 12, 15, 18, 21].map((hour) => (
             <span
               key={hour}
@@ -238,7 +260,7 @@ export function CalendarScreen({ preset }: { preset: CalendarPreset }) {
                   "absolute z-[2] overflow-hidden rounded-[7px_7px_7px_3px] p-[5px_4px] text-left text-[11px] font-semibold leading-[1.17]",
                   entryClasses(entry)
                 )}
-                aria-label={getEntryAriaLabel(entry)}
+                aria-label={getEntryAriaLabel(entry, preset.trip.timezone)}
               >
                 {entry.status === "conflicted" && <AlertTriangle aria-hidden="true" size={12} className="mb-0.5" />}
                 {entry.type === "transfer" && <Route aria-hidden="true" size={12} className="mb-0.5" />}

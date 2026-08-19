@@ -44,8 +44,16 @@ export class TripService {
     return this.repository.findById(z.uuid().parse(id));
   }
 
+  async getArchivedTrips(limit = 10) {
+    return this.repository.listArchived(Math.min(Math.max(limit, 1), 50));
+  }
+
   async getTimeline(tripId: string) {
     return this.repository.listEvents(z.uuid().parse(tripId));
+  }
+
+  async getEvent(id: string) {
+    return this.repository.findEventById(z.uuid().parse(id));
   }
 
   async addEvent(input: CreateEventInput) {
