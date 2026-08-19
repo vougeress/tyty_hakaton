@@ -10,7 +10,6 @@ export const attractionSuggestionSchema = z.object({
   distanceKm: z.number().nonnegative().max(300),
   travelMinutesOneWay: z.number().int().nonnegative().max(240),
   visitMinutes: z.number().int().min(30).max(480),
-  pricePerPerson: z.number().nonnegative().max(1_000_000).nullable().optional(),
   reason: z.string().trim().min(5).max(240)
 });
 
@@ -31,7 +30,6 @@ export type AttractionSuggestionRequest = {
     longitude?: number;
   };
   travelers: number;
-  budgetPerPerson: number;
   requiredReturnBufferMinutes: number;
   minimumVisitMinutes: number;
   maxTravelMinutesOneWay: number;

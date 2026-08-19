@@ -45,17 +45,14 @@ export async function searchIdeasAction(
       const result = await searchAttractionCandidates(context);
       return {
         status: "success",
-        message: result.candidates.length > 0 ? "GigaChat подобрал места рядом" : "Подходящих мест рядом не найдено",
+        message: result.candidates.length > 0 ? "Места рядом подобраны" : "Подходящих мест рядом не найдено",
         destination: "Рядом с текущей точкой",
         candidates: result.candidates,
         checkedAt: result.checkedAt,
         mode: "live",
         provider: "gigachat",
         cache: "miss",
-        warnings: [
-          `Стартовая точка: ${context.automatic.currentLocation.name}`,
-          "Время в пути оценено GigaChat — перед выходом проверьте маршрут на карте"
-        ]
+        warnings: []
       };
     }
     const result = await searchCandidates(context, destination, false);
@@ -80,7 +77,7 @@ export async function searchIdeasAction(
     return {
       status: "error",
       message: automatic
-        ? "GigaChat пока не смог подобрать места. Повторите попытку через несколько секунд."
+        ? "Не удалось подобрать места рядом. Повторите попытку через несколько секунд."
         : error instanceof ZodError ? "Проверьте направление" : "Сервис вариантов временно недоступен",
       destination,
       candidates: [],

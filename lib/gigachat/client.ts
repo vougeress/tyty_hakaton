@@ -29,7 +29,6 @@ const RESPONSE_SCHEMA = {
           distanceKm: { type: "number" },
           travelMinutesOneWay: { type: "integer" },
           visitMinutes: { type: "integer" },
-          pricePerPerson: { type: ["number", "null"] },
           reason: { type: "string" }
         },
         required: [
@@ -42,7 +41,6 @@ const RESPONSE_SCHEMA = {
           "distanceKm",
           "travelMinutesOneWay",
           "visitMinutes",
-          "pricePerPerson",
           "reason"
         ],
         additionalProperties: false
@@ -102,10 +100,11 @@ function prompt(input: AttractionSuggestionRequest) {
     `Подбери от 3 до 5 реально существующих достопримечательностей в городе ${input.city}.`,
     `Текущая позиция группы: ${input.currentLocation.name}. ${coordinates}`,
     `Свободное окно: ${input.startsAt} — ${input.endsAt}, часовой пояс ${input.timezone}.`,
-    `Группа: ${input.travelers} чел., бюджет до ${input.budgetPerPerson} рублей на человека.`,
+    `Группа: ${input.travelers} чел.`,
     `Дорога в одну сторону — не больше ${input.maxTravelMinutesOneWay} минут, посещение — минимум ${input.minimumVisitMinutes} минут,`,
     `после возвращения должен остаться запас ${input.requiredReturnBufferMinutes} минут.`,
-    "Учитывай дорогу туда и обратно. Не придумывай адреса. Если цена неизвестна, не передавай pricePerPerson.",
+    "Учитывай дорогу туда и обратно. Используй точное официальное название и реальный адрес.",
+    "Если не уверен, что место существует или правильно названо, не включай его в ответ.",
     "distanceKm и travelMinutesOneWay должны быть реалистичной оценкой от текущей точки. Кратко объясни, почему место помещается в окно."
   ].join(" ");
 }
@@ -120,13 +119,13 @@ export async function suggestAttractionsWithGigaChat(input: AttractionSuggestion
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
-      model: process.env.GIGACHAT_MODEL ?? "GigaChat-2",
+      model: process.env.GIGACHAT_MODEL ?? "GigaChat-2-Pro",
       stream: false,
       temperature: 0.25,
       messages: [
         {
           role: "system",
-          content: "Ты локальный travel-планировщик. Возвращай только проверяемые достопримечательности и строго соблюдай JSON Schema."
+          content: "Ты локальный помощник по выбору достопримечательностей. Возвращай только реально существующие места и строго соблюдай JSON Schema."
         },
         { role: "user", content: prompt(input) }
       ],

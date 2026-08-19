@@ -30,8 +30,7 @@ function mapCandidate(context: LoadedIdeasContext, suggestion: AttractionSuggest
       id,
       startsAt,
       endsAt,
-      pricePerPerson: suggestion.pricePerPerson ?? undefined,
-      capacity: "unknown",
+      capacity: context.search.participantIds.length,
       outboundRoute: { startsAt: context.search.startsAt, endsAt: startsAt },
       returnRoute: { startsAt: endsAt, endsAt: returnAt }
     },
@@ -42,7 +41,6 @@ function mapCandidate(context: LoadedIdeasContext, suggestion: AttractionSuggest
     },
     participantConstraints: context.search.participantIds.map((participantId) => ({
       participantId,
-      maxBudgetPerPerson: context.search.budgetPerPerson,
       maxTravelMinutes: context.automatic.maxTravelMinutesOneWay * 2,
       returnBufferMinutes: context.search.minimumReturnBufferMinutes,
       allowOvernight: false
@@ -65,12 +63,14 @@ function mapCandidate(context: LoadedIdeasContext, suggestion: AttractionSuggest
     travelMode: suggestion.travelMinutesOneWay <= 25 ? "walk" : "mixed",
     travelMinutes: suggestion.travelMinutesOneWay * 2,
     usefulMinutes: suggestion.visitMinutes,
-    pricePerPerson: suggestion.pricePerPerson ?? undefined,
-    capacity: "unknown",
+    capacity: context.search.participantIds.length,
     returnBufferMinutes: Math.max(0, Math.round((Date.parse(context.search.nextRequiredAt ?? context.search.endsAt) - Date.parse(returnAt)) / 60_000)),
     interest: suggestion.category,
+    description: suggestion.description,
+    address: suggestion.address,
+    distanceKm: suggestion.distanceKm,
     deeplink: `https://yandex.ru/maps/?text=${mapQuery}`,
-    recommendationReason: `${suggestion.reason} · ~${suggestion.distanceKm.toFixed(1)} км от текущей точки`,
+    recommendationReason: suggestion.reason,
     check: {
       status: check.status,
       reasons: check.reasons.map(({ code, message }) => ({ code, message })),
@@ -89,7 +89,6 @@ export async function searchAttractionCandidates(context: LoadedIdeasContext) {
     endsAt: context.search.endsAt,
     currentLocation: context.automatic.currentLocation,
     travelers: context.search.participantIds.length,
-    budgetPerPerson: context.search.budgetPerPerson,
     requiredReturnBufferMinutes: context.search.minimumReturnBufferMinutes,
     minimumVisitMinutes: context.search.minimumUsefulMinutes,
     maxTravelMinutesOneWay: context.automatic.maxTravelMinutesOneWay

@@ -23,6 +23,9 @@ export type IdeaCandidate = {
   capacity: number | "unknown";
   returnBufferMinutes: number;
   interest?: string;
+  description?: string;
+  address?: string;
+  distanceKm?: number;
   deeplink?: string;
   recommendationReason: string;
   check: CandidateCheckSnapshot;
