@@ -18,6 +18,7 @@ import type {
   CalendarPreset
 } from "@/lib/calendar-repository";
 import { readManualCalendarItems } from "@/lib/manual-calendar-storage";
+import { useCurrentParticipantId } from "@/lib/use-current-participant";
 import { cn } from "@/lib/utils";
 
 const GRID_START_HOUR = 9;
@@ -103,12 +104,17 @@ export function CalendarScreen({ preset }: { preset: CalendarPreset }) {
   const [isChecking, setIsChecking] = useState(false);
   const [scanVisible, setScanVisible] = useState(false);
   const [manualItems, setManualItems] = useState<CalendarItem[]>([]);
-  const currentParticipant = preset.participants[0];
+  const currentParticipantId = useCurrentParticipantId(preset.participants.map(({ id }) => id));
+  const currentParticipant = preset.participants.find(({ id }) => id === currentParticipantId) ?? preset.participants[0];
   const participantFilters = [
     { id: "all", label: "Все" },
     ...preset.participants.map((participant) => ({
       id: participant.id,
-      label: participant.id === currentParticipant?.id ? "Я" : participant.shortName
+      label: participant.id === currentParticipant?.id
+        ? "Я"
+        : participant.shortName === "Я"
+          ? participant.displayName
+          : participant.shortName
     }))
   ];
 
