@@ -7,6 +7,7 @@ function snapshot(tallies: Array<{ yes: number; maybe: number; veto: number }>):
   return {
     id: "00000000-0000-4000-8000-000000000001",
     tripId: "00000000-0000-4000-8000-000000000002",
+    createdByParticipantId: "00000000-0000-4000-8000-000000000011",
     title: "Выбор",
     status: "active",
     closesAt: new Date(Date.now() + 60_000).toISOString(),

@@ -25,4 +25,33 @@ describe("TravelSearchService cache bypass", () => {
     expect((await service.search(input, { bypassCache: true })).cache).toBe("miss");
     expect(search).toHaveBeenCalledTimes(2);
   });
+
+  it("falls back when auto live search returns no fitting options", async () => {
+    const live: TravelSearchAdapter = { search: vi.fn(async () => []) };
+    const mock: TravelSearchAdapter = { search: vi.fn(async () => [{
+      id: "fallback",
+      type: "bus" as const,
+      origin: "Казань",
+      destination: "Иннополис",
+      departureAt: "2026-09-12T09:00:00.000Z",
+      arrivalAt: "2026-09-12T10:00:00.000Z",
+      pricePerPerson: 900,
+      source: "demo_catalog" as const,
+      checkedAt: "2026-08-19T12:00:00.000Z"
+    }]) };
+    const result = await new TravelSearchService(live, mock).search({
+      origin: "Казань",
+      destination: "Иннополис",
+      timezone: "Europe/Moscow",
+      startsAt: "2026-09-12T08:00:00+03:00",
+      endsAt: "2026-09-12T18:00:00+03:00",
+      travelers: 2,
+      types: ["bus"],
+      mode: "auto"
+    }, { bypassCache: true });
+
+    expect(result.mode).toBe("mock");
+    expect(result.options[0]?.id).toBe("fallback");
+    expect(result.warnings.join(" ")).toMatch(/резервный каталог/i);
+  });
 });

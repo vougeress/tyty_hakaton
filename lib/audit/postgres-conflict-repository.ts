@@ -1,5 +1,5 @@
 import type { ScheduleConflict } from "@/lib/conflict-repository";
-import { calculateAudit } from "@/lib/audit/postgres-audit-repository";
+import { calculateAuditWithRoutes } from "@/lib/audit/postgres-audit-repository";
 import { createTripService } from "@/lib/trips";
 
 function formatTime(date: Date, timezone: string) {
@@ -20,7 +20,7 @@ export class PostgresConflictRepository {
     ]);
     if (!trip) return null;
 
-    const conflict = calculateAudit(trip, timeline).conflicts.find(({ id }) => id === conflictId);
+    const conflict = (await calculateAuditWithRoutes(trip, timeline)).conflicts.find(({ id }) => id === conflictId);
     if (!conflict) return null;
 
     const isOverlap = conflict.kind === "overlap";
@@ -61,12 +61,14 @@ export class PostgresConflictRepository {
           meta: isOverlap ? "занято" : `нужно ${conflict.requiredBufferMinutes} мин.`
         }
       ],
-      votesNotice: "Конфликт рассчитан по событиям, участникам и локациям из текущего календаря. Черновики не меняют опубликованный план.",
+      votesNotice: isOverlap
+        ? "Конфликт рассчитан по событиям и участникам из текущего календаря. Черновики не меняют опубликованный план."
+        : `Маршрут проверен через ${conflict.routeSource === "tutu" ? "Туту MCP" : conflict.routeSource === "demo_catalog" ? "резервный каталог" : conflict.routeSource === "coordinates" ? "оценку по координатам" : "резервную оценку"}.${conflict.routeWarning ? ` ${conflict.routeWarning}` : ""} Черновики не меняют опубликованный план.`,
       links: {
         calendar: "/audit",
         poll: `/calendar/items/${conflict.previous.id}`,
         alternatives: "/calendar",
-        adjustTime: `/calendar/items/${conflict.next.id}`
+        adjustTime: `/calendar/items/${conflict.previous.id}/reschedule?conflictId=${encodeURIComponent(conflict.id)}`
       }
     };
   }

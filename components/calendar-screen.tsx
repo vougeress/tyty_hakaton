@@ -83,7 +83,7 @@ function entryClasses(entry: CalendarItem) {
     }
     return "border-[1.5px] border-dashed border-[#e4a928] bg-[#fff9cf] text-[#6b4500]";
   }
-  if (entry.status === "confirmed" && entry.type === "event") {
+  if (entry.status === "confirmed" && (entry.type === "event" || entry.type === "transfer")) {
     return "border border-transparent bg-primary text-white";
   }
   if (entry.type === "transfer") {
@@ -98,7 +98,15 @@ function getEntryAriaLabel(entry: CalendarItem, timezone: string) {
   return `${entry.title}, ${start}${status}`;
 }
 
-export function CalendarScreen({ preset, mockMode = false }: { preset: CalendarPreset; mockMode?: boolean }) {
+export function CalendarScreen({
+  preset,
+  mockMode = false,
+  embedded = false
+}: {
+  preset: CalendarPreset;
+  mockMode?: boolean;
+  embedded?: boolean;
+}) {
   const router = useRouter();
   const [participantFilter, setParticipantFilter] = useState("all");
   const [isChecking, setIsChecking] = useState(false);
@@ -154,7 +162,10 @@ export function CalendarScreen({ preset, mockMode = false }: { preset: CalendarP
 
   return (
     <main
-      className="mx-auto flex min-h-dvh w-full max-w-[430px] flex-col overflow-hidden bg-surface text-ink shadow-shell sm:my-6 sm:min-h-[760px] sm:rounded-[28px]"
+      className={cn(
+        "mx-auto flex w-full max-w-[430px] flex-col overflow-hidden bg-surface text-ink",
+        embedded ? "min-h-dvh" : "min-h-dvh shadow-shell sm:my-6 sm:min-h-[760px] sm:rounded-[28px]"
+      )}
       data-preset-id={preset.id}
     >
       <header className="flex min-h-16 items-center justify-between gap-3 bg-surface px-4 py-3">

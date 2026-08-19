@@ -110,17 +110,17 @@ function AuditReportView({
           </span>
           <span className="min-w-0">
             <strong className="block text-base leading-5 text-ink">
-              {report.checkedEventCount} событий и {report.checkedBookingCount} билета проверены
+              Проверено: {countLabel(report.checkedEventCount, "событие", "события", "событий")} и {countLabel(report.checkedBookingCount, "билет", "билета", "билетов")}
             </strong>
             <span className="mt-1 block text-sm text-ink/60">
-              {report.conflictCount} конфликт · {report.suggestedTransfers.length} переезда можно добавить
+              {auditSummary(report.conflictCount, report.suggestedTransfers.length)}
             </span>
           </span>
         </div>
         <div className="mt-3 flex items-center justify-between border-t border-ink/10 pt-3 text-xs text-ink/60">
           <span>Последняя проверка: {report.checkedAt}</span>
           <span className="rounded-full bg-surface/70 px-2 py-1 font-semibold text-ink">
-            {report.issueCount} замечания
+            {countLabel(report.issueCount, "замечание", "замечания", "замечаний")}
           </span>
         </div>
       </section>
@@ -131,29 +131,51 @@ function AuditReportView({
         ))}
       </section>
 
-      <section className="rounded-[12px] border border-primary/20 bg-primary/5 p-3 text-sm leading-5 text-ink/65">
-        Переезды будут сохранены как черновики. Мы не переставим события и не опубликуем изменения автоматически.
-      </section>
+      {report.suggestedTransfers.length > 0 && (
+        <>
+          <section className="rounded-[12px] border border-primary/20 bg-primary/5 p-3 text-sm leading-5 text-ink/65">
+            <strong className="block text-ink">Что значит «черновик»</strong>
+            Переезд появится в календаре с пунктирной рамкой и пометкой «Черновик». Он не меняет время соседних событий и не считается подтверждённым, пока вы его не проверите.
+          </section>
 
-      <Button
-        type="button"
-        className="w-full"
-        disabled={transfersDrafted || isPending || report.suggestedTransfers.length === 0}
-        onClick={draftTransfers}
-      >
-        {transfersDrafted ? <CheckCircle2 aria-hidden="true" size={18} /> : <Route aria-hidden="true" size={18} />}
-        {transfersDrafted ? "Переезды добавлены" : isPending ? "Сохраняем…" : `Добавить ${report.suggestedTransfers.length} переезда как черновики`}
-      </Button>
+          <Button
+            type="button"
+            className="w-full"
+            disabled={transfersDrafted || isPending}
+            onClick={draftTransfers}
+          >
+            {transfersDrafted ? <CheckCircle2 aria-hidden="true" size={18} /> : <Route aria-hidden="true" size={18} />}
+            {transfersDrafted ? "Переезды добавлены" : isPending ? "Сохраняем…" : draftButtonLabel(report.suggestedTransfers.length)}
+          </Button>
+        </>
+      )}
 
       {saveError && <div role="alert" className="rounded-[12px] border border-coral/20 bg-coral/10 p-3 text-sm font-semibold text-coral">{saveError}</div>}
 
-      {transfersDrafted && (
+      {(transfersDrafted || (report.draftedTransferIds?.length ?? 0) > 0) && (
         <div role="status" className="rounded-[12px] border border-success/20 bg-success/10 p-3 text-sm font-semibold text-success">
-          Переезды добавлены как черновики. План не изменён.
+          В календаре есть черновики переездов: {report.draftedTransferIds?.length || report.suggestedTransfers.length}. План не изменён автоматически.
         </div>
       )}
     </div>
   );
+}
+
+function draftButtonLabel(count: number) {
+  return `Добавить ${countLabel(count, "переезд", "переезда", "переездов")} как черновики`;
+}
+
+function auditSummary(conflictCount: number, transferCount: number) {
+  const conflicts = countLabel(conflictCount, "конфликт", "конфликта", "конфликтов");
+  if (transferCount === 0) return `${conflicts} · новых переездов нет`;
+  return `${conflicts} · можно добавить ${countLabel(transferCount, "переезд", "переезда", "переездов")}`;
+}
+
+function countLabel(count: number, one: string, few: string, many: string) {
+  const lastTwo = count % 100;
+  const last = count % 10;
+  const noun = lastTwo >= 11 && lastTwo <= 14 ? many : last === 1 ? one : last >= 2 && last <= 4 ? few : many;
+  return `${count} ${noun}`;
 }
 
 function AuditIssueRow({ issue }: { issue: AuditIssue }) {
@@ -185,6 +207,11 @@ function AuditIssueRow({ issue }: { issue: AuditIssue }) {
                 {event.title}
               </Link>
             ))}
+          </span>
+        )}
+        {issue.tone === "suggestion" && (
+          <span className="mt-1 inline-flex rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary">
+            Будет добавлен как черновик
           </span>
         )}
       </span>

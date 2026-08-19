@@ -10,6 +10,7 @@ import type {
 } from "@/lib/audit-repository";
 import { createTripService } from "@/lib/trips";
 import type { CalendarEvent, TripDetails } from "@/lib/trips/contracts";
+import { createTravelSearchService, type TravelOption } from "@/lib/travel-search";
 
 const DEFAULT_TRANSFER_MINUTES = 30;
 const REQUIRED_BUFFER_MINUTES = 15;
@@ -29,6 +30,17 @@ type AuditCalculation = {
   conflicts: AuditConflictDetail[];
 };
 
+type RouteEstimate = {
+  minutes: number;
+  startsAt?: Date;
+  endsAt?: Date;
+  source: NonNullable<SuggestedTransfer["routeSource"]>;
+  checkedAt: string;
+  warning?: string;
+};
+
+type RouteEstimates = ReadonlyMap<string, RouteEstimate>;
+
 export type AuditConflictDetail = {
   id: string;
   kind: "overlap" | "route";
@@ -37,6 +49,9 @@ export type AuditConflictDetail = {
   actualBufferMinutes: number;
   requiredBufferMinutes: number;
   routeMinutes: number;
+  routeSource?: NonNullable<SuggestedTransfer["routeSource"]>;
+  routeCheckedAt?: string;
+  routeWarning?: string;
 };
 
 function formatTime(date: Date, timezone: string) {
@@ -58,13 +73,20 @@ function distinctLocations(left: CalendarEvent, right: CalendarEvent) {
   return Boolean(from && to && from !== to);
 }
 
-function transferMinutes(left: CalendarEvent, right: CalendarEvent) {
+function fallbackRouteEstimate(left: CalendarEvent, right: CalendarEvent): RouteEstimate {
   const from = left.location;
   const to = right.location;
   if (
     from?.lat === undefined || from.lon === undefined ||
     to?.lat === undefined || to.lon === undefined
-  ) return DEFAULT_TRANSFER_MINUTES;
+  ) {
+    return {
+      minutes: DEFAULT_TRANSFER_MINUTES,
+      source: "estimate",
+      checkedAt: new Date().toISOString(),
+      warning: "Маршрут не найден: использована резервная оценка 30 минут."
+    };
+  }
 
   const radians = (value: number) => value * Math.PI / 180;
   const latitudeDelta = radians(to.lat - from.lat);
@@ -73,14 +95,27 @@ function transferMinutes(left: CalendarEvent, right: CalendarEvent) {
     Math.cos(radians(from.lat)) * Math.cos(radians(to.lat)) *
     Math.sin(longitudeDelta / 2) ** 2;
   const distanceKm = 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return Math.max(10, Math.ceil((distanceKm / 25) * 60 / 5) * 5);
+  return {
+    minutes: Math.max(10, Math.ceil((distanceKm / 25) * 60 / 5) * 5),
+    source: "coordinates",
+    checkedAt: new Date().toISOString(),
+    warning: "Маршрут не найден: время оценено по координатам."
+  };
+}
+
+function routeKey(left: CalendarEvent, right: CalendarEvent) {
+  return `${left.id}:${right.id}`;
 }
 
 function externalRef(tripId: string, fromEventId: string, toEventId: string) {
   return `${DRAFT_PREFIX}${tripId}:${fromEventId}:${toEventId}`;
 }
 
-export function calculateAudit(trip: TripDetails, timeline: CalendarEvent[]): AuditCalculation {
+export function calculateAudit(
+  trip: TripDetails,
+  timeline: CalendarEvent[],
+  routeEstimates: RouteEstimates = new Map()
+): AuditCalculation {
   const checkedAt = new Date();
   const existingDraftRefs = new Set(
     timeline
@@ -139,7 +174,8 @@ export function calculateAudit(trip: TripDetails, timeline: CalendarEvent[]): Au
       continue;
     }
 
-    const routeMinutes = transferMinutes(previous, next);
+    const estimate = routeEstimates.get(routeKey(previous, next)) ?? fallbackRouteEstimate(previous, next);
+    const routeMinutes = estimate.minutes;
     const requiredMinutes = routeMinutes + REQUIRED_BUFFER_MINUTES;
     if (gapMinutes < requiredMinutes) {
       const conflictId = `route-${previous.id}-${next.id}`;
@@ -159,21 +195,27 @@ export function calculateAudit(trip: TripDetails, timeline: CalendarEvent[]): Au
         next,
         actualBufferMinutes: gapMinutes,
         requiredBufferMinutes: requiredMinutes,
-        routeMinutes
+        routeMinutes,
+        routeSource: estimate.source,
+        routeCheckedAt: estimate.checkedAt,
+        routeWarning: estimate.warning
       });
       continue;
     }
 
-    const endsAt = new Date(next.startsAt.getTime() - REQUIRED_BUFFER_MINUTES * 60_000);
-    const startsAt = new Date(endsAt.getTime() - routeMinutes * 60_000);
+    const endsAt = estimate.endsAt ?? new Date(next.startsAt.getTime() - REQUIRED_BUFFER_MINUTES * 60_000);
+    const startsAt = estimate.startsAt ?? new Date(endsAt.getTime() - routeMinutes * 60_000);
     const id = `${previous.id}:${next.id}`;
     transfers.push({
       id,
       title: `${previous.location!.name} → ${next.location!.name}`,
-      description: `Добавить переезд ${routeMinutes} мин. и буфер ${REQUIRED_BUFFER_MINUTES} мин.`,
+      description: `${estimate.source === "tutu" ? "Маршрут Туту" : estimate.source === "demo_catalog" ? "Резервный каталог" : "Оценка маршрута"}: ${routeMinutes} мин. Буфер ${REQUIRED_BUFFER_MINUTES} мин.${estimate.warning ? ` ${estimate.warning}` : ""}`,
       meta: formatTime(startsAt, trip.timezone),
       fromEventId: previous.id,
       toEventId: next.id,
+      routeSource: estimate.source,
+      routeCheckedAt: estimate.checkedAt,
+      routeWarning: estimate.warning,
       startsAt,
       endsAt,
       participantIds,
@@ -222,6 +264,79 @@ export function calculateAudit(trip: TripDetails, timeline: CalendarEvent[]): Au
   };
 }
 
+async function findRouteEstimates(trip: TripDetails, timeline: CalendarEvent[], bypassCache = false) {
+  const anchors = timeline
+    .filter((event) => event.status !== "cancelled" && event.status !== "draft" && event.type !== "draft" && event.type !== "poll")
+    .sort((left, right) => left.startsAt.getTime() - right.startsAt.getTime());
+  const service = createTravelSearchService();
+  const entries = await Promise.all(anchors.slice(0, -1).map(async (previous, index) => {
+    const next = anchors[index + 1];
+    const participantIds = sameParticipants(previous, next);
+    const gapMinutes = Math.floor((next.startsAt.getTime() - previous.endsAt.getTime()) / 60_000);
+    if (
+      participantIds.length === 0 || gapMinutes <= 0 || previous.type === "transfer" ||
+      next.type === "transfer" || !distinctLocations(previous, next)
+    ) return undefined;
+
+    try {
+      const deadline = new Date(next.startsAt.getTime() - REQUIRED_BUFFER_MINUTES * 60_000);
+      if (deadline <= previous.endsAt) return undefined;
+      const result = await service.search({
+        tripId: trip.id,
+        origin: previous.location!.name,
+        destination: next.location!.name,
+        timezone: trip.timezone,
+        startsAt: previous.endsAt,
+        endsAt: deadline,
+        travelers: participantIds.length,
+        types: ["train", "bus", "suburban_train"],
+        mode: "auto"
+      }, { bypassCache });
+      const option = bestAuditOption(result.options, previous.endsAt, deadline, participantIds.length);
+      if (!option) return [routeKey(previous, next), fallbackRouteEstimate(previous, next)] as const;
+      const source = option.source === "tutu" ? "tutu" : "demo_catalog";
+      return [routeKey(previous, next), {
+        minutes: Math.ceil((Date.parse(option.arrivalAt) - Date.parse(option.departureAt)) / 60_000),
+        startsAt: new Date(option.departureAt),
+        endsAt: new Date(option.arrivalAt),
+        source,
+        checkedAt: result.checkedAt,
+        warning: [...result.warnings, ...(source === "demo_catalog" ? ["Использован резервный каталог вместо live MCP."] : [])].filter(Boolean).join(" ") || undefined
+      } satisfies RouteEstimate] as const;
+    } catch {
+      return [routeKey(previous, next), fallbackRouteEstimate(previous, next)] as const;
+    }
+  }));
+  return new Map(entries.filter((entry): entry is NonNullable<typeof entry> => Boolean(entry)));
+}
+
+export async function calculateAuditWithRoutes(
+  trip: TripDetails,
+  timeline: CalendarEvent[],
+  options: { bypassCache?: boolean } = {}
+) {
+  const routeEstimates = await findRouteEstimates(trip, timeline, options.bypassCache);
+  return calculateAudit(trip, timeline, routeEstimates);
+}
+
+function bestAuditOption(options: TravelOption[], earliest: Date, deadline: Date, travelers: number) {
+  return options
+    .filter((option) =>
+      Date.parse(option.departureAt) >= earliest.getTime() &&
+      Date.parse(option.arrivalAt) <= deadline.getTime() &&
+      Date.parse(option.arrivalAt) >= Date.parse(option.departureAt) &&
+      (option.availableSeats === undefined || option.availableSeats >= travelers)
+    )
+    .sort((left, right) =>
+      (Date.parse(left.arrivalAt) - Date.parse(left.departureAt)) -
+      (Date.parse(right.arrivalAt) - Date.parse(right.departureAt))
+    )[0];
+}
+
+function timelineFingerprint(timeline: CalendarEvent[]) {
+  return timeline.map((event) => [event.id, event.status, event.startsAt.toISOString(), event.endsAt.toISOString(), event.location?.name ?? ""].join("|")).sort().join(";");
+}
+
 export class PostgresAuditRepository {
   async getLatestReport(tripId: string): Promise<AuditRepositoryResult> {
     const service = createTripService();
@@ -231,7 +346,7 @@ export class PostgresAuditRepository {
     ]);
     if (!trip) return { status: "empty" };
 
-    const { report } = calculateAudit(trip, timeline);
+    const { report } = await calculateAuditWithRoutes(trip, timeline);
     if (report.issueCount === 0 && (report.draftedTransferIds?.length ?? 0) === 0) {
       return { status: "empty", checkedAt: report.checkedAt };
     }
@@ -240,17 +355,29 @@ export class PostgresAuditRepository {
 
   async saveDraftTransfers(tripId: string, transferIds: string[]) {
     const requested = new Set(transferIds);
+    // MCP/network work happens before the transaction. Inside the lock we only
+    // accept these results if the schedule is still exactly the one we checked.
+    const service = createTripService();
+    const [preflightTrip, preflightTimeline] = await Promise.all([
+      service.getTrip(tripId),
+      service.getTimeline(tripId)
+    ]);
+    if (!preflightTrip) throw new Error("Trip not found");
+    const routeEstimates = await findRouteEstimates(preflightTrip, preflightTimeline, true);
+    const preflightFingerprint = timelineFingerprint(preflightTimeline);
     return getDatabase().transaction(async (tx) => {
       await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${tripId}))`);
       // Rebuild the audit after taking the trip lock so a stale UI cannot save a
       // transfer whose neighbouring events or buffer have changed.
-      const service = createTripService();
       const [trip, timeline] = await Promise.all([
         service.getTrip(tripId),
         service.getTimeline(tripId)
       ]);
       if (!trip) throw new Error("Trip not found");
-      const selected = calculateAudit(trip, timeline).transfers.filter((transfer) => requested.has(transfer.id));
+      if (timelineFingerprint(timeline) !== preflightFingerprint) {
+        throw new Error("Расписание изменилось во время проверки. Запустите аудит ещё раз.");
+      }
+      const selected = calculateAudit(trip, timeline, routeEstimates).transfers.filter((transfer) => requested.has(transfer.id));
       if (selected.length === 0) return 0;
 
       const refs = selected.map((transfer) => transfer.externalRef);

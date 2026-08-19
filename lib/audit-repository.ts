@@ -17,6 +17,9 @@ export type SuggestedTransfer = {
   meta: string;
   fromEventId?: string;
   toEventId?: string;
+  routeSource?: "tutu" | "demo_catalog" | "coordinates" | "estimate";
+  routeCheckedAt?: string;
+  routeWarning?: string;
 };
 
 export type DraftTransferRecord = SuggestedTransfer & {

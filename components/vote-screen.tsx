@@ -22,7 +22,7 @@ function choiceTone(value: VoteValue, selected: boolean) {
   return "border-primary bg-primary/10 text-primary";
 }
 
-export function VoteScreen({ initialPoll, participantIds, ownerId }: { initialPoll: PollSnapshot; participantIds: string[]; ownerId: string }) {
+export function VoteScreen({ initialPoll, participantIds, ownerId, timezone }: { initialPoll: PollSnapshot; participantIds: string[]; ownerId: string; timezone: string }) {
   const router = useRouter();
   const [poll, setPoll] = useState(initialPoll);
   const [showCustomForm, setShowCustomForm] = useState(false);
@@ -30,7 +30,7 @@ export function VoteScreen({ initialPoll, participantIds, ownerId }: { initialPo
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [now, setNow] = useState<number | null>(null);
-  const participantId = useCurrentParticipantId(participantIds, undefined, false);
+  const participantId = useCurrentParticipantId(participantIds, ownerId);
 
   useEffect(() => {
     setNow(Date.now());
@@ -80,7 +80,7 @@ export function VoteScreen({ initialPoll, participantIds, ownerId }: { initialPo
   const remainingSeconds = Math.max(0, Math.ceil((new Date(poll.closesAt).getTime() - displayNow) / 1000));
   const countdownLabel = formatCountdown(remainingSeconds);
   const acceptsResponses = poll.status === "active" && remainingSeconds > 0;
-  const canManagePoll = participantId === ownerId;
+  const canManagePoll = participantId === ownerId || participantId === poll.createdByParticipantId;
   const canClosePoll = canManagePoll && poll.status === "active";
 
   async function submitVote(candidateId: string, value: VoteValue) {
@@ -278,7 +278,7 @@ export function VoteScreen({ initialPoll, participantIds, ownerId }: { initialPo
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <h2 className="text-base font-bold">{candidate.title}</h2>
-                  {candidate.description && <p className="mt-1 text-sm text-ink/62">{candidate.description}</p>}
+                  {candidate.description && <p className="mt-1 text-sm text-ink/62">{displayCandidateDescription(candidate.description, timezone)}</p>}
                   {candidate.pricePerPerson !== null && (
                     <p className="mt-1 text-xs font-semibold text-ink/58">{candidate.pricePerPerson.toLocaleString("ru-RU")} ₽/чел.</p>
                   )}
@@ -357,5 +357,21 @@ function formatCountdown(seconds: number) {
   const rest = seconds % 60;
   if (days > 0) return `${days} д ${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
   if (hours > 0) return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(rest).padStart(2, "0")}`;
-  return `${String(minutes).padStart(2, "0")}:${String(rest).padStart(2, "0")}`;
+  return `${minutes} мин ${String(rest).padStart(2, "0")} сек`;
+}
+
+function displayCandidateDescription(description: string, timezone: string) {
+  const match = description.match(/^(.*?) · (\d{4}-\d{2}-\d{2}T[^–]+)–(\d{4}-\d{2}-\d{2}T\S+)$/);
+  if (!match) return description;
+  const [, location, startsAt, endsAt] = match;
+  const start = new Date(startsAt);
+  const end = new Date(endsAt);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return description;
+  const date = new Intl.DateTimeFormat("ru-RU", { timeZone: timezone, day: "numeric", month: "long" }).format(start);
+  const time = (value: Date) => new Intl.DateTimeFormat("ru-RU", {
+    timeZone: timezone,
+    hour: "2-digit",
+    minute: "2-digit"
+  }).format(value);
+  return `${location} · ${date}, ${time(start)}–${time(end)}`;
 }

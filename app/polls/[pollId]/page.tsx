@@ -19,5 +19,5 @@ export default async function PollPage({ params }: { params: Promise<{ pollId: s
   const trip = await createTripService().getTrip(poll.tripId);
   if (!trip) notFound();
 
-  return <VoteScreen initialPoll={poll} participantIds={trip.participants.map(({ id }) => id)} ownerId={trip.ownerId} />;
+  return <VoteScreen initialPoll={poll} participantIds={trip.participants.map(({ id }) => id)} ownerId={trip.ownerId} timezone={trip.timezone} />;
 }

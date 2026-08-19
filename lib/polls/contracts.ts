@@ -107,6 +107,7 @@ export type PollCandidateSnapshot = {
 export type PollSnapshot = {
   id: string;
   tripId: string;
+  createdByParticipantId: string;
   title: string;
   status: "active" | "closed";
   closesAt: string;

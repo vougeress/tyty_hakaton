@@ -60,6 +60,7 @@ export type CalendarPreset = {
 
 export type EventDetails = CalendarItem & {
   presetId: "event.confirmed" | "event.generic";
+  timezone: string;
   dateLabel: string;
   mapLabel: string;
   mapUrl: string;
@@ -201,6 +202,7 @@ const items: CalendarItem[] = [
 const eventDetails: EventDetails = {
   ...items.find(({ id }) => id === "kremlin")!,
   presetId: "event.confirmed",
+  timezone: "Europe/Moscow",
   dateLabel: "Пятница, 11 сентября",
   mapLabel: "Кремль, Казань",
   mapUrl: "https://yandex.ru/maps/?text=%D0%9A%D0%B0%D0%B7%D0%B0%D0%BD%D1%81%D0%BA%D0%B8%D0%B9%20%D0%9A%D1%80%D0%B5%D0%BC%D0%BB%D1%8C",
@@ -253,6 +255,7 @@ export const mockCalendarRepository: CalendarRepository = {
     return {
       ...item,
       presetId: "event.generic",
+      timezone: "Europe/Moscow",
       dateLabel: "Событие поездки",
       mapLabel: item.location ?? "Казань",
       mapUrl: "https://yandex.ru/maps/?text=%D0%9A%D0%B0%D0%B7%D0%B0%D0%BD%D1%8C",

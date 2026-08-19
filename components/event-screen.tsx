@@ -11,12 +11,17 @@ import {
 } from "lucide-react";
 import type { CalendarParticipant, EventDetails } from "@/lib/calendar-repository";
 import { cn } from "@/lib/utils";
+import type { ReactNode } from "react";
 
-function shortTime(iso: string) {
-  return iso.slice(11, 16);
+function shortTime(iso: string, timezone: string) {
+  return new Intl.DateTimeFormat("ru-RU", {
+    timeZone: timezone,
+    hour: "2-digit",
+    minute: "2-digit"
+  }).format(new Date(iso));
 }
 
-export function EventScreen({ event, participants }: { event: EventDetails; participants: CalendarParticipant[] }) {
+export function EventScreen({ event, participants, calendarBackground }: { event: EventDetails; participants: CalendarParticipant[]; calendarBackground?: ReactNode }) {
   const routeUnchecked = event.source === "manual" && event.status !== "confirmed";
   const statusLabel = event.status === "confirmed"
     ? "Запланировано"
@@ -29,10 +34,14 @@ export function EventScreen({ event, participants }: { event: EventDetails; part
       className="relative mx-auto min-h-dvh w-full max-w-[430px] overflow-hidden bg-page text-ink shadow-shell sm:my-6 sm:min-h-[760px] sm:rounded-[28px]"
       data-preset-id={event.presetId}
     >
-      <div aria-hidden="true" className="absolute inset-0 bg-white">
-        <div className="h-16 border-b border-border" />
-        <div className="h-[46px] border-b border-border" />
-        <div className="h-[472px] bg-[repeating-linear-gradient(to_bottom,transparent_0,transparent_35px,var(--color-border)_36px)]" />
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden bg-white">
+        {calendarBackground ?? (
+          <>
+            <div className="h-16 border-b border-border" />
+            <div className="h-[46px] border-b border-border" />
+            <div className="h-[472px] bg-[repeating-linear-gradient(to_bottom,transparent_0,transparent_35px,var(--color-border)_36px)]" />
+          </>
+        )}
       </div>
       <Link href="/calendar" aria-label="Закрыть карточку события" className="absolute inset-0 z-10 bg-[#17213b]/25" />
 
@@ -63,7 +72,7 @@ export function EventScreen({ event, participants }: { event: EventDetails; part
         <div className="my-[13px] grid gap-2.5 text-[13px] leading-5">
           <div className="grid grid-cols-[20px_1fr] gap-2">
             <Clock3 aria-hidden="true" size={18} />
-            <span>{shortTime(event.startsAt)}–{shortTime(event.endsAt)}</span>
+            <span>{shortTime(event.startsAt, event.timezone)}–{shortTime(event.endsAt, event.timezone)}</span>
           </div>
           <div className="grid grid-cols-[20px_1fr] gap-2">
             <MapPin aria-hidden="true" size={18} />

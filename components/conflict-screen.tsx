@@ -91,7 +91,7 @@ export function ConflictScreen({ conflict }: { conflict: ScheduleConflict }) {
           </ButtonLink>
           <ButtonLink href={conflict.links.adjustTime} variant="secondary" className="min-h-[48px]">
             <Clock3 aria-hidden="true" size={18} />
-            {isCalendarConflict ? "Открыть следующее событие" : "Сдвинуть время"}
+            Сдвинуть время
           </ButtonLink>
           <ButtonLink href={conflict.links.poll} variant="ghost" className="min-h-[44px]">
             {isCalendarConflict ? "Открыть предыдущее событие" : "Вернуться к голосованию"}

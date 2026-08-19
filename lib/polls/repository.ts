@@ -38,10 +38,20 @@ import { createTravelSearchService, travelOptionSchema, type TravelOption } from
 
 const emptyTally: CandidateTally = { yes: 0, maybe: 0, veto: 0 };
 
+type PollCalendarEventInput = {
+  startsAt: Date;
+  endsAt: Date;
+  locationName: string;
+  participantIds: string[];
+};
+
 export class PollRepository {
-  async createPoll(input: CreatePollInput): Promise<PollSnapshot> {
+  async createPoll(input: CreatePollInput, calendarEvent?: PollCalendarEventInput): Promise<PollSnapshot> {
     const validated = createPollInputSchema.parse(input);
     if (validated.closesAt <= new Date()) throw new Error("Poll close time must be in the future");
+    if (calendarEvent && calendarEvent.endsAt <= calendarEvent.startsAt) {
+      throw new Error("Poll calendar event must end after it starts");
+    }
 
     const existing = validated.idempotencyKey
       ? await this.findByIdempotencyKey(validated.idempotencyKey)
@@ -84,6 +94,10 @@ export class PollRepository {
         sortOrder: index,
         createdByParticipantId: validated.createdByParticipantId
       })));
+
+      if (calendarEvent) {
+        await ensurePollCalendarEvent(poll.id, poll.tripId, poll.title, calendarEvent, tx);
+      }
 
       return this.getPoll(poll.id, tx);
     });
@@ -173,7 +187,7 @@ export class PollRepository {
 
     return getDatabase().transaction(async (tx) => {
       const poll = await getPollRow(validated.pollId, tx);
-      await assertTripOwner(poll.tripId, validated.participantId, tx);
+      await assertPollManager(poll, validated.participantId, tx);
       if (poll.status === "closed") return this.getPoll(poll.id, tx);
 
       const snapshot = await this.getPoll(poll.id, tx);
@@ -395,6 +409,7 @@ async function buildPollSnapshot(
   return {
     id: poll.id,
     tripId: poll.tripId,
+    createdByParticipantId: poll.createdByParticipantId,
     title: poll.title,
     status: poll.status,
     closesAt: poll.closesAt.toISOString(),
@@ -452,6 +467,53 @@ async function syncPollCalendarEvent(
       updatedAt: new Date()
     })
     .where(and(eq(events.type, "poll"), eq(events.externalRef, pollId)));
+}
+
+async function ensurePollCalendarEvent(
+  pollId: string,
+  tripId: string,
+  pollTitle: string,
+  calendarEvent: PollCalendarEventInput,
+  db: ReturnType<typeof getDatabase>
+) {
+  const participantIds = [...new Set(calendarEvent.participantIds)];
+  const memberships = await db
+    .select({ participantId: tripMembers.participantId })
+    .from(tripMembers)
+    .where(and(
+      eq(tripMembers.tripId, tripId),
+      inArray(tripMembers.participantId, participantIds)
+    ));
+  if (memberships.length !== participantIds.length) {
+    throw new Error("Poll calendar participant is not a trip member");
+  }
+
+  const [inserted] = await db
+    .insert(events)
+    .values({
+      tripId,
+      type: "poll",
+      status: "active",
+      title: `Голосование: ${pollTitle}`,
+      startsAt: calendarEvent.startsAt,
+      endsAt: calendarEvent.endsAt,
+      locationName: calendarEvent.locationName,
+      source: "manual",
+      externalRef: pollId
+    })
+    .onConflictDoNothing({ target: [events.source, events.externalRef] })
+    .returning({ id: events.id });
+
+  const eventId = inserted?.id ?? (await db
+    .select({ id: events.id })
+    .from(events)
+    .where(and(eq(events.source, "manual"), eq(events.externalRef, pollId)))
+    .limit(1))[0]?.id;
+  if (!eventId) throw new Error("Poll calendar event could not be linked");
+
+  await db.insert(eventParticipants).values(
+    participantIds.map((participantId) => ({ eventId, participantId }))
+  ).onConflictDoNothing();
 }
 
 async function syncConfirmedBookingCalendarEvent(
@@ -525,6 +587,18 @@ async function assertTripOwner(
     .where(eq(trips.id, tripId))
     .limit(1);
   if (!trip || trip.ownerId !== participantId) throw new Error("Only the trip owner can close a poll");
+}
+
+async function assertPollManager(
+  poll: typeof polls.$inferSelect,
+  participantId: string,
+  db: ReturnType<typeof getDatabase>
+) {
+  if (poll.createdByParticipantId === participantId) {
+    await assertTripMember(poll.tripId, participantId, db);
+    return;
+  }
+  await assertTripOwner(poll.tripId, participantId, db);
 }
 
 async function getPollRow(id: string, db: ReturnType<typeof getDatabase>) {

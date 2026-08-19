@@ -97,6 +97,10 @@ export function ManualEventScreen({ context }: { context: ManualEventContext }) 
         setSubmitError(result.message);
         return;
       }
+      if (result.kind === "poll") {
+        router.push(result.href);
+        return;
+      }
       setCreatedResult(result);
     } catch {
       setSubmitError("Не удалось сохранить событие. Попробуйте ещё раз.");
@@ -225,7 +229,7 @@ export function ManualEventScreen({ context }: { context: ManualEventContext }) 
             </div>
             {onlyMe && <p className="mt-1.5 text-[11px] text-ink/50">Личное событие добавляется сразу в план без голосования.</p>}
             {effectiveMode === "vote" && !onlyMe && (
-              <p className="mt-1.5 text-[11px] text-ink/50">Серверное голосование подключается. Прямое добавление уже сохраняется в общий план.</p>
+              <p className="mt-1.5 text-[11px] text-ink/50">Создадим голосование и добавим его в выбранное окно общего плана.</p>
             )}
           </div>
 

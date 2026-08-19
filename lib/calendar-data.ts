@@ -156,6 +156,7 @@ export function buildEventDetails(event: CalendarEvent, trip: TripDetails): Even
   return {
     ...item,
     presetId: event.title.includes("Кремл") ? "event.confirmed" : "event.generic",
+    timezone: trip.timezone,
     dateLabel: new Intl.DateTimeFormat("ru-RU", {
       weekday: "long",
       day: "numeric",
