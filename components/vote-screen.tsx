@@ -1,105 +1,248 @@
 "use client";
 
+import { Plus, RotateCw, Trophy, X, XCircle } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
-import { AlertTriangle, ArrowLeft, LockKeyhole, Plus, Vote } from "lucide-react";
-import type { PollCandidate, VotePreset, VoteValue } from "@/lib/voting/repository";
+import { useEffect, useMemo, useState } from "react";
+
+import { PARTICIPANT_STORAGE_KEY } from "@/lib/trips/constants";
+import type { PollSnapshot, VoteValue } from "@/lib/polls";
 import { cn } from "@/lib/utils";
 
 const choices: Array<{ value: VoteValue; label: string }> = [
-  { value: "yes", label: "За" },
-  { value: "maybe", label: "Можно" },
-  { value: "veto", label: "Не могу" }
+  { value: "yes", label: "Да" },
+  { value: "no", label: "Нет" },
+  { value: "maybe", label: "Возможно" }
 ];
 
-function formatPrice(value: number) {
-  return new Intl.NumberFormat("ru-RU").format(value) + " ₽";
+function choiceTone(value: VoteValue, selected: boolean) {
+  if (!selected) return "border-border bg-muted text-ink";
+  if (value === "yes") return "border-success bg-success/10 text-success";
+  if (value === "no") return "border-coral bg-coral/10 text-[#9b302b]";
+  return "border-primary bg-primary/10 text-primary";
 }
 
-function VoteCard({ candidate, value, onChange }: { candidate: PollCandidate; value?: VoteValue; onChange: (value: VoteValue) => void }) {
-  const ownLabel = choices.find((choice) => choice.value === value)?.label;
+export function VoteScreen({ initialPoll }: { initialPoll: PollSnapshot }) {
+  const [poll, setPoll] = useState(initialPoll);
+  const [participantId, setParticipantId] = useState<string | null>(null);
+  const [showCustomForm, setShowCustomForm] = useState(false);
+  const [pendingKey, setPendingKey] = useState<string | null>(null);
+
+  useEffect(() => {
+    const stored = window.localStorage.getItem(PARTICIPANT_STORAGE_KEY);
+    const fallback = poll.candidates.flatMap((candidate) => candidate.responses).at(0)?.participantId;
+    setParticipantId(stored || fallback || null);
+  }, [poll.candidates]);
+
+  useEffect(() => {
+    const interval = window.setInterval(async () => {
+      const response = await fetch(`/api/trips/${poll.tripId}/votes?updatedSince=${encodeURIComponent(poll.updatedAt)}`, {
+        cache: "no-store"
+      });
+      if (!response.ok) return;
+      const payload = await response.json() as { polls?: PollSnapshot[] };
+      const updated = payload.polls?.find(({ id }) => id === poll.id);
+      if (updated) setPoll(updated);
+    }, 2000);
+
+    return () => window.clearInterval(interval);
+  }, [poll.id, poll.tripId, poll.updatedAt]);
+
+  const myResponses = useMemo(() => {
+    const map = new Map<string, VoteValue>();
+    if (!participantId) return map;
+    for (const candidate of poll.candidates) {
+      const response = candidate.responses.find((item) => item.participantId === participantId);
+      if (response) map.set(candidate.id, response.value);
+    }
+    return map;
+  }, [participantId, poll.candidates]);
+  const winner = poll.candidates.find((candidate) => candidate.id === poll.winnerCandidateId);
+
+  async function submitVote(candidateId: string, value: VoteValue) {
+    if (!participantId || poll.status === "closed") return;
+    const idempotencyKey = crypto.randomUUID();
+    setPendingKey(`${candidateId}:${value}`);
+    try {
+      const response = await fetch(`/api/polls/${poll.id}/responses`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ candidateId, participantId, value, idempotencyKey })
+      });
+      if (!response.ok) return;
+      const payload = await response.json() as { poll: PollSnapshot };
+      setPoll(payload.poll);
+    } finally {
+      setPendingKey(null);
+    }
+  }
+
+  async function closePoll() {
+    if (!participantId || poll.status === "closed") return;
+    setPendingKey("close");
+    try {
+      const response = await fetch(`/api/polls/${poll.id}/close`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ participantId, idempotencyKey: crypto.randomUUID() })
+      });
+      if (!response.ok) return;
+      const payload = await response.json() as { poll: PollSnapshot };
+      setPoll(payload.poll);
+    } finally {
+      setPendingKey(null);
+    }
+  }
+
+  async function addCustomCandidate(formData: FormData) {
+    if (!participantId || poll.status === "closed") return;
+    setPendingKey("custom");
+    try {
+      const response = await fetch(`/api/polls/${poll.id}/candidates`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          participantId,
+          idempotencyKey: crypto.randomUUID(),
+          candidate: {
+            title: String(formData.get("title") ?? ""),
+            description: String(formData.get("description") ?? ""),
+            pricePerPerson: String(formData.get("pricePerPerson") ?? "") || undefined,
+            source: "user_link"
+          }
+        })
+      });
+      if (!response.ok) return;
+      const payload = await response.json() as { poll: PollSnapshot };
+      setPoll(payload.poll);
+      setShowCustomForm(false);
+    } finally {
+      setPendingKey(null);
+    }
+  }
+
   return (
-    <article className={cn("rounded-[14px_14px_14px_5px] border bg-white p-3 shadow-card", candidate.conflicted ? "border-coral" : "border-border")} data-candidate-id={candidate.id}>
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h2 className="text-[15px] font-semibold">{candidate.title}</h2>
-          <p className="mt-1 text-[11px] text-ink/58">{candidate.summary}</p>
-        </div>
-        <strong className="shrink-0 text-[13px]">{formatPrice(candidate.pricePerPerson)}</strong>
-      </div>
-      {candidate.conflicted && (
-        <p className="mt-2 inline-flex items-center gap-1 text-[11px] font-semibold text-[#a32e28]"><AlertTriangle aria-hidden="true" size={15} />Есть логистический конфликт</p>
-      )}
-      <div className="mt-3 grid grid-cols-3 gap-1.5" role="group" aria-label={`Ваш ответ: ${candidate.title}`}>
-        {choices.map((choice) => (
-          <button
-            key={choice.value}
-            type="button"
-            aria-pressed={value === choice.value}
-            onClick={() => onChange(choice.value)}
-            className={cn(
-              "min-h-10 rounded-[10px] border text-[12px] font-semibold transition",
-              value === choice.value ? "border-primary bg-primary/10 text-primary-strong" : "border-border bg-white text-ink/65",
-              choice.value === "veto" && value === choice.value && "border-coral bg-coral/10 text-[#a32e28]"
-            )}
+    <main className="mx-auto min-h-dvh w-full max-w-[430px] bg-page text-ink shadow-shell sm:my-6 sm:min-h-[760px] sm:rounded-[28px]">
+      <header className="bg-ink px-5 pb-5 pt-6 text-white">
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-xs font-semibold text-white/62">Голосование</p>
+          <Link
+            href="/calendar"
+            aria-label="Закрыть голосование"
+            className="grid h-9 w-9 place-items-center rounded-full bg-white/10 text-white hover:bg-white/15"
           >
-            {choice.label}
-          </button>
-        ))}
-      </div>
-      <p className="mt-2 min-h-4 text-[11px] text-primary-strong" aria-live="polite">{ownLabel ? `Ваш ответ: ${ownLabel}` : "Выберите ответ"}</p>
-    </article>
-  );
-}
-
-export function VoteScreen({ preset }: { preset: VotePreset }) {
-  const [responses, setResponses] = useState<Partial<Record<string, VoteValue>>>(preset.initialResponses);
-  const requiredCandidateIds = preset.candidates.filter((candidate) => !candidate.conflicted).map(({ id }) => id);
-  const canFinish = requiredCandidateIds.length > 0 && requiredCandidateIds.every((id) => responses[id] !== undefined);
-
-  return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-[430px] flex-col bg-page text-ink shadow-shell sm:my-6 sm:min-h-[760px] sm:rounded-[28px]" data-preset-id={preset.id}>
-      <header className="flex min-h-[74px] items-center gap-2.5 border-b border-border bg-white px-4 py-3">
-        <Link href="/calendar" aria-label="Назад к календарю" className="grid h-9 w-9 shrink-0 place-items-center rounded-full hover:bg-page"><ArrowLeft aria-hidden="true" size={20} /></Link>
-        <div><h1 className="text-[17px] font-semibold">{preset.gapLabel}</h1><p className="mt-0.5 text-[12px] text-ink/58">{preset.deadlineLabel}</p></div>
+            <X aria-hidden="true" size={20} />
+          </Link>
+        </div>
+        <h1 className="mt-1 text-2xl font-bold">{poll.title}</h1>
+        <div className="mt-3 flex items-center justify-between text-xs text-white/65">
+          <span>{poll.respondedParticipantCount} из {poll.participantCount} ответили</span>
+          <span>v{poll.version}</span>
+        </div>
       </header>
 
-      <div className="flex-1 px-3 py-3">
-        <div className="flex items-center justify-between gap-3">
-          <span className="inline-flex min-h-7 items-center gap-1.5 rounded-full bg-accent/35 px-3 text-[12px] font-semibold"><Vote aria-hidden="true" size={15} />Голосование · {preset.responseProgress}</span>
-          <span className="text-[11px] text-ink/58">{preset.remainingLabel}</span>
-        </div>
-
-        <div className="mt-3 flex items-center">
-          <div className="flex -space-x-[5px]">
-            {preset.participants.map((participant) => (
-              <span key={participant.id} title={participant.name} className={cn("grid h-8 w-8 place-items-center rounded-full border-2 border-page text-[11px] font-semibold", participant.tone === "purple" && "bg-primary text-white", participant.tone === "cyan" && "bg-cyan", participant.tone === "lime" && "bg-lime")}>{participant.initial}</span>
-            ))}
+      <section className="space-y-3 px-5 py-5">
+        {poll.status === "closed" && (
+          <div className="rounded-[8px] border border-border bg-white p-4 shadow-card">
+            {poll.winnerCandidateId ? (
+              <div className="space-y-3">
+                <p className="inline-flex items-center gap-2 text-sm font-semibold text-success">
+                  <Trophy aria-hidden="true" size={17} /> Победитель: {winner?.title ?? "выбран"}
+                </p>
+                <Link href="/calendar" className="inline-flex h-10 items-center justify-center rounded-[8px] bg-primary px-4 text-sm font-semibold text-white">
+                  Открыть календарь
+                </Link>
+              </div>
+            ) : (
+              <p className="inline-flex items-center gap-2 text-sm font-semibold text-primary">
+                <RotateCw aria-hidden="true" size={17} /> Нужен финальный выбор
+              </p>
+            )}
           </div>
-          <div className="ml-3 text-[11px] leading-4"><strong className="block">{preset.waitingParticipantName} ещё не ответил</strong><span className="inline-flex items-center gap-1 text-ink/55"><LockKeyhole aria-hidden="true" size={12} />Бюджеты участников скрыты</span></div>
-        </div>
+        )}
 
-        <div className="mt-3 grid gap-2.5">
-          {preset.candidates.map((candidate) => (
-            <VoteCard key={candidate.id} candidate={candidate} value={responses[candidate.id]} onChange={(value) => setResponses((current) => ({ ...current, [candidate.id]: value }))} />
-          ))}
-          {preset.candidates.length === 0 && (
-            <div className="rounded-[14px] border border-dashed border-border bg-white p-6 text-center">
-              <p className="text-sm font-semibold">Выбранные варианты ещё не синхронизированы</p>
-              <p className="mt-1 text-[12px] text-ink/60">Вернитесь к подбору или дождитесь проверки пользовательского варианта.</p>
-            </div>
-          )}
-        </div>
+        {poll.candidates.map((candidate) => {
+          const selected = myResponses.get(candidate.id);
+          const blocked = candidate.tally.no > 0;
+          const isWinner = poll.winnerCandidateId === candidate.id;
+          const isFinalist = poll.finalistCandidateIds.includes(candidate.id);
 
-        <div className="mt-3 flex items-center justify-between gap-3">
-          <Link href="/calendar/gaps/demo-gap/ideas" className="inline-flex min-h-10 items-center gap-1 text-[12px] font-semibold text-primary-strong"><Plus aria-hidden="true" size={16} />Добавить вариант</Link>
-          {canFinish ? (
-            <Link href="/winners/innopolis" className="inline-flex min-h-11 items-center rounded-[12px_12px_12px_5px] bg-primary px-5 text-sm font-semibold text-white">Завершить</Link>
-          ) : (
-            <button type="button" disabled className="min-h-11 rounded-[12px] bg-primary px-5 text-sm font-semibold text-white opacity-45">Завершить</button>
-          )}
+          return (
+            <article
+              key={candidate.id}
+              className={cn(
+                "rounded-[8px] border border-border bg-white p-4 shadow-card",
+                isWinner && "border-success/45 bg-success/8",
+                isFinalist && "border-primary/45 bg-primary/8",
+                blocked && "border-coral/45"
+              )}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <h2 className="text-base font-bold">{candidate.title}</h2>
+                  {candidate.description && <p className="mt-1 text-sm text-ink/62">{candidate.description}</p>}
+                  {candidate.pricePerPerson !== null && (
+                    <p className="mt-1 text-xs font-semibold text-ink/58">{candidate.pricePerPerson.toLocaleString("ru-RU")} ₽/чел.</p>
+                  )}
+                </div>
+                {blocked && <XCircle aria-hidden="true" size={19} className="shrink-0 text-coral" />}
+              </div>
+
+              <div className="mt-3 grid grid-cols-3 gap-2">
+                {choices.map((choice) => (
+                  <button
+                    key={choice.value}
+                    type="button"
+                    disabled={!participantId || poll.status === "closed" || pendingKey !== null}
+                    onClick={() => submitVote(candidate.id, choice.value)}
+                    className={cn(
+                      "h-10 rounded-[8px] border text-xs font-bold disabled:opacity-55",
+                      choiceTone(choice.value, selected === choice.value)
+                    )}
+                  >
+                    {choice.label}
+                  </button>
+                ))}
+              </div>
+
+              <div className="mt-3 grid grid-cols-3 gap-2 text-center text-[11px] font-semibold text-ink/58">
+                <span>Да {candidate.tally.yes}</span>
+                <span>Нет {candidate.tally.no}</span>
+                <span>Возможно {candidate.tally.maybe}</span>
+              </div>
+            </article>
+          );
+        })}
+
+        {showCustomForm && (
+          <form action={addCustomCandidate} className="grid gap-2 rounded-[8px] border border-border bg-white p-4 shadow-card">
+            <input name="title" required maxLength={120} placeholder="Свой вариант" className="h-11 rounded-[8px] border border-border px-3 text-sm outline-none focus:border-primary" />
+            <input name="description" maxLength={320} placeholder="Короткое описание" className="h-11 rounded-[8px] border border-border px-3 text-sm outline-none focus:border-primary" />
+            <input name="pricePerPerson" inputMode="numeric" placeholder="Цена на человека" className="h-11 rounded-[8px] border border-border px-3 text-sm outline-none focus:border-primary" />
+            <button type="submit" disabled={pendingKey !== null} className="h-11 rounded-[8px] bg-primary text-sm font-semibold text-white disabled:opacity-55">
+              Добавить
+            </button>
+          </form>
+        )}
+
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            type="button"
+            disabled={poll.status === "closed"}
+            onClick={() => setShowCustomForm((value) => !value)}
+            className="inline-flex h-11 items-center justify-center gap-2 rounded-[8px] border border-border bg-white text-sm font-semibold disabled:opacity-55"
+          >
+            <Plus aria-hidden="true" size={17} /> Добавить свой
+          </button>
+          <button
+            type="button"
+            disabled={!participantId || poll.status === "closed" || pendingKey !== null}
+            onClick={closePoll}
+            className="h-11 rounded-[8px] bg-primary text-sm font-semibold text-white disabled:opacity-55"
+          >
+            Завершить
+          </button>
         </div>
-      </div>
+      </section>
     </main>
   );
 }

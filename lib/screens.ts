@@ -99,7 +99,7 @@ export const screenSummaries: Record<ScreenId, {
     eyebrow: "vote.active",
     preset: "P0",
     icon: Vote,
-    description: "Ответы За, Можно и Не могу по каждому варианту без раскрытия приватных ограничений."
+    description: "Ответы Да, Нет и Возможно по каждому варианту без раскрытия приватных ограничений."
   },
   conflict: {
     title: "Конфликт",

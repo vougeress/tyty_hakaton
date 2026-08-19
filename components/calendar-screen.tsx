@@ -77,6 +77,9 @@ function entryClasses(entry: CalendarItem) {
     return "border border-dashed border-primary/70 bg-primary/10 text-primary-strong";
   }
   if (entry.type === "poll") {
+    if (entry.status === "confirmed") {
+      return "border-[1.5px] border-success bg-success/10 text-success";
+    }
     return "border-[1.5px] border-dashed border-[#e4a928] bg-[#fff9cf] text-[#6b4500]";
   }
   if (entry.status === "confirmed" && entry.type === "event") {

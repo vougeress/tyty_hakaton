@@ -1,21 +1,19 @@
 import { notFound } from "next/navigation";
+
 import { VoteScreen } from "@/components/vote-screen";
-import { mockVotingRepository } from "@/lib/voting/repository";
+import { createPollRepository } from "@/lib/polls";
+import { getCurrentTripId } from "@/lib/trips/current-trip";
 
-export default async function PollPage({
-  params,
-  searchParams
-}: {
-  params: Promise<{ pollId: string }>;
-  searchParams: Promise<{ candidates?: string }>;
-}) {
+export const dynamic = "force-dynamic";
+
+export default async function PollPage({ params }: { params: Promise<{ pollId: string }> }) {
   const { pollId } = await params;
-  const preset = mockVotingRepository.getPreset(pollId);
-  if (!preset) notFound();
-  const selectedIds = (await searchParams).candidates?.split(",").filter(Boolean);
-  const visiblePreset = selectedIds?.length
-    ? { ...preset, candidates: preset.candidates.filter((candidate) => selectedIds.includes(candidate.id)) }
-    : preset;
+  const repository = createPollRepository();
+  const poll = pollId === "demo-poll"
+    ? (await repository.listTripPolls(await getCurrentTripId()))[0]
+    : await repository.getPoll(pollId).catch(() => null);
 
-  return <VoteScreen preset={visiblePreset} />;
+  if (!poll) notFound();
+
+  return <VoteScreen initialPoll={poll} />;
 }

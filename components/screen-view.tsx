@@ -267,7 +267,7 @@ function VoteScreen() {
             <Badge>3 из 4</Badge>
           </div>
           <div className="mt-3 grid grid-cols-3 gap-2">
-            {["За", "Можно", "Не могу"].map((vote, index) => (
+            {["Да", "Возможно", "Нет"].map((vote, index) => (
               <button
                 key={vote}
                 type="button"
@@ -282,9 +282,14 @@ function VoteScreen() {
           </div>
         </Card>
       ))}
-      <ButtonLink href={screenRoutes.winner} className="w-full">
-        Завершить выбор
-      </ButtonLink>
+      <div className="grid grid-cols-2 gap-3">
+        <ButtonLink href={screenRoutes.ideas} variant="secondary">
+          Добавить свой
+        </ButtonLink>
+        <ButtonLink href={screenRoutes.winner}>
+          Завершить
+        </ButtonLink>
+      </div>
     </div>
   );
 }
