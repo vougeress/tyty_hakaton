@@ -1,5 +1,11 @@
-import { ScreenView } from "@/components/screen-view";
+import { notFound } from "next/navigation";
+import { IdeasScreen } from "@/components/ideas-screen";
+import { mockIdeasRepository } from "@/lib/ideas";
 
-export default function IdeasPage() {
-  return <ScreenView screenId="ideas" />;
+export default async function IdeasPage({ params }: { params: Promise<{ gapId: string }> }) {
+  const { gapId } = await params;
+  const preset = mockIdeasRepository.getPreset(gapId);
+  if (!preset) notFound();
+
+  return <IdeasScreen preset={preset} />;
 }
