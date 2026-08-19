@@ -1,4 +1,4 @@
-export type CandidateSource = "tutu" | "demo_catalog" | "user_link";
+export type CandidateSource = "tutu" | "gigachat" | "demo_catalog" | "user_link";
 export type CandidateCheckStatus = "unknown" | "checking" | "valid" | "warning" | "blocking" | "stale";
 
 export type CandidateCheckSnapshot = {
@@ -48,6 +48,7 @@ export type IdeasSearchState = {
   candidates: IdeaCandidate[];
   checkedAt?: string;
   mode?: "live" | "mock";
+  provider?: "tutu" | "gigachat" | "demo_catalog";
   cache?: "hit" | "miss";
   warnings: string[];
 };

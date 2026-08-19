@@ -15,6 +15,10 @@ import {
   type IdeasSearchState
 } from "@/lib/ideas";
 import { loadIdeasContext } from "@/lib/ideas/server-context";
+import {
+  getCachedAttractionCandidates,
+  searchAttractionCandidates
+} from "@/lib/ideas/attraction-suggestions";
 import { createPollRepository } from "@/lib/polls";
 
 function text(formData: FormData, key: string) {
@@ -27,7 +31,8 @@ export async function searchIdeasAction(
 ): Promise<IdeasSearchState> {
   const gapId = text(formData, "gapId");
   const destination = text(formData, "destination");
-  if (!gapId || !destination) {
+  const searchKind = text(formData, "searchKind") || "travel";
+  if (!gapId || (searchKind !== "attractions" && !destination)) {
     return { ...previousState, status: "error", message: "Укажите направление", candidates: [] };
   }
 
@@ -35,6 +40,23 @@ export async function searchIdeasAction(
     const context = await loadIdeasContext(gapId);
     if (!context) {
       return { ...previousState, status: "error", message: "Свободное окно больше недоступно", candidates: [] };
+    }
+    if (searchKind === "attractions") {
+      const result = await searchAttractionCandidates(context);
+      return {
+        status: "success",
+        message: result.candidates.length > 0 ? "GigaChat подобрал места рядом" : "Подходящих мест рядом не найдено",
+        destination: "Рядом с текущей точкой",
+        candidates: result.candidates,
+        checkedAt: result.checkedAt,
+        mode: "live",
+        provider: "gigachat",
+        cache: "miss",
+        warnings: [
+          `Стартовая точка: ${context.automatic.currentLocation.name}`,
+          "Время в пути оценено GigaChat — перед выходом проверьте маршрут на карте"
+        ]
+      };
     }
     const result = await searchCandidates(context, destination, false);
 
@@ -45,16 +67,21 @@ export async function searchIdeasAction(
       candidates: result.candidates,
       checkedAt: result.checkedAt,
       mode: result.mode,
+      provider: result.mode === "live" ? "tutu" : "demo_catalog",
       cache: result.cache,
       warnings: result.warnings
     };
   } catch (error) {
+    const automatic = searchKind === "attractions";
     return {
       status: "error",
-      message: error instanceof ZodError ? "Проверьте направление" : "Сервис вариантов временно недоступен",
+      message: automatic
+        ? "GigaChat пока недоступен. Добавьте GIGACHAT_AUTH_KEY или попробуйте ручной поиск."
+        : error instanceof ZodError ? "Проверьте направление" : "Сервис вариантов временно недоступен",
       destination,
       candidates: [],
-      warnings: ["Проверьте подключение и повторите поиск"]
+      provider: automatic ? "gigachat" : undefined,
+      warnings: [automatic ? "Текущая позиция и свободное окно сохранены — можно повторить подбор позже" : "Проверьте подключение и повторите поиск"]
     };
   }
 }
@@ -155,6 +182,7 @@ export type CreateIdeasPollResult = { status: "success"; pollId: string } | { st
 export async function createIdeasPollAction(formData: FormData): Promise<CreateIdeasPollResult> {
   const gapId = text(formData, "gapId");
   const destination = text(formData, "destination");
+  const provider = text(formData, "provider");
   const participantId = text(formData, "participantId");
   const selectedIds = [...new Set(formData.getAll("candidateId").map(String))];
   try {
@@ -163,8 +191,10 @@ export async function createIdeasPollAction(formData: FormData): Promise<CreateI
     if (!context.search.participantIds.includes(participantId)) {
       return { status: "error", message: "Текущий участник не входит в это свободное окно." };
     }
-    const fresh = await searchCandidates(context, destination, true);
     const now = Date.now();
+    const fresh = provider === "gigachat"
+      ? { candidates: getCachedAttractionCandidates(gapId, now), options: [] }
+      : await searchCandidates(context, destination, true);
     const acceptable = fresh.candidates.filter((candidate) => {
       if (!selectedIds.includes(candidate.id)) return false;
       return isFreshSelectableCandidate(candidate, now);
@@ -182,6 +212,11 @@ export async function createIdeasPollAction(formData: FormData): Promise<CreateI
         fresh.options.find((option) => option.id === candidate.id)
       )),
       idempotencyKey: `ideas-${gapId}-${selectedIds.sort().join("-")}`.slice(0, 120)
+    }, {
+      startsAt: new Date(context.search.startsAt),
+      endsAt: new Date(context.search.endsAt),
+      locationName: provider === "gigachat" ? context.automatic.currentLocation.name : destination,
+      participantIds: context.search.participantIds
     });
     return { status: "success", pollId: poll.id };
   } catch {

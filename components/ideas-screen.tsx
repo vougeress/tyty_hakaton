@@ -15,6 +15,7 @@ import {
   Link2,
   Plus,
   RefreshCw,
+  Sparkles,
   Timer,
   Users,
   WifiOff,
@@ -63,6 +64,7 @@ function checkTone(status: IdeaCandidate["check"]["status"]) {
 
 function sourceLabel(source: IdeaCandidate["source"]) {
   if (source === "tutu") return "через Туту";
+  if (source === "gigachat") return "предложил GigaChat";
   if (source === "demo_catalog") return "демо-каталог";
   return "вариант участника";
 }
@@ -244,6 +246,7 @@ export function IdeasScreen({ preset, initialSearch, mockMode = false }: { prese
       const formData = new FormData();
       formData.set("gapId", preset.gapId);
       formData.set("destination", searchState.destination);
+      if (searchState.provider) formData.set("provider", searchState.provider);
       formData.set("participantId", participantId);
       selectedCandidates.forEach(({ id }) => formData.append("candidateId", id));
       const result = await createIdeasPollAction(formData);
@@ -274,8 +277,30 @@ export function IdeasScreen({ preset, initialSearch, mockMode = false }: { prese
       <div className="flex-1 px-3 pb-28 pt-3">
         <form action={searchAction} className="mb-3 rounded-[14px] border border-border bg-white p-3 shadow-card">
           <input type="hidden" name="gapId" value={preset.gapId} />
+          <div className="mb-3 rounded-[12px_12px_12px_5px] bg-primary/10 p-3">
+            <div className="flex items-start gap-2.5">
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px_10px_10px_4px] bg-primary text-white">
+                <Sparkles aria-hidden="true" size={18} />
+              </span>
+              <div className="min-w-0 flex-1">
+                <strong className="block text-sm">Не знаете, куда пойти?</strong>
+                <p className="mt-0.5 text-[11px] leading-4 text-ink/65">GigaChat учтёт текущую точку из плана, время окна, дорогу и бюджет.</p>
+              </div>
+            </div>
+            <button
+              type="submit"
+              name="searchKind"
+              value="attractions"
+              formNoValidate
+              disabled={searchPending}
+              className="mt-2.5 inline-flex h-10 w-full items-center justify-center gap-2 rounded-[10px] bg-accent text-xs font-semibold text-ink disabled:opacity-60"
+            >
+              <Sparkles aria-hidden="true" size={15} className={searchPending ? "animate-pulse" : undefined} />
+              {searchPending ? "Подбираем…" : "Подобрать рядом автоматически"}
+            </button>
+          </div>
           <label className="grid gap-1 text-[11px] text-ink/58">
-            Куда хотите поехать
+            Или укажите направление вручную
             <span className="flex gap-2">
               <input
                 name="destination"
@@ -284,7 +309,7 @@ export function IdeasScreen({ preset, initialSearch, mockMode = false }: { prese
                 placeholder="Например, Иннополис"
                 className="h-11 min-w-0 flex-1 rounded-[10px] border border-border px-3 text-sm text-ink outline-none focus:border-primary"
               />
-              <button disabled={searchPending} className="inline-flex h-11 items-center gap-1.5 rounded-[10px] bg-primary px-3 text-xs font-semibold text-white disabled:opacity-60">
+              <button name="searchKind" value="travel" disabled={searchPending} className="inline-flex h-11 items-center gap-1.5 rounded-[10px] bg-primary px-3 text-xs font-semibold text-white disabled:opacity-60">
                 <RefreshCw aria-hidden="true" size={15} className={searchPending ? "animate-spin" : undefined} />
                 {searchPending ? "Ищем…" : "Найти"}
               </button>
@@ -294,7 +319,7 @@ export function IdeasScreen({ preset, initialSearch, mockMode = false }: { prese
             <div className="mt-2 flex items-center justify-between gap-2 text-[11px] text-ink/60" aria-live="polite">
               <span className="inline-flex items-center gap-1">
                 {searchState.mode === "live" ? <CheckCircle2 aria-hidden="true" size={14} className="text-success" /> : <WifiOff aria-hidden="true" size={14} />}
-                {searchState.mode === "live" ? "Данные Туту" : "Fallback: демо-каталог"}
+                {searchState.provider === "gigachat" ? "Подбор GigaChat" : searchState.mode === "live" ? "Данные Туту" : "Fallback: демо-каталог"}
               </span>
               <span>{formatCheckedAt(searchState.checkedAt, preset.timezone)}{searchState.cache === "hit" ? " · из кеша" : ""}</span>
             </div>
