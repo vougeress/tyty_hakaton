@@ -5,6 +5,7 @@ import { CheckCircle2, ExternalLink, RefreshCw, X } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import type { PollCandidateSnapshot, PollSnapshot } from "@/lib/polls";
+import { createClientRequestId } from "@/lib/client-request-id";
 import { useCurrentParticipantId } from "@/lib/use-current-participant";
 import { cn } from "@/lib/utils";
 
@@ -33,7 +34,7 @@ export function WinnerBookingScreen({ initialPoll, participantIds }: { initialPo
       const response = await fetch(`/api/polls/${poll.id}/recheck`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ participantId, mode: "auto", idempotencyKey: crypto.randomUUID() })
+        body: JSON.stringify({ participantId, mode: "auto", idempotencyKey: createClientRequestId() })
       });
       if (!response.ok) return;
       const payload = await response.json() as { poll: PollSnapshot };
@@ -52,7 +53,7 @@ export function WinnerBookingScreen({ initialPoll, participantIds }: { initialPo
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           participantId,
-          idempotencyKey: crypto.randomUUID()
+          idempotencyKey: createClientRequestId()
         })
       });
       if (!response.ok) return;

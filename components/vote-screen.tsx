@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
 import type { PollSnapshot, VoteValue } from "@/lib/polls";
+import { createClientRequestId } from "@/lib/client-request-id";
 import { useCurrentParticipantId } from "@/lib/use-current-participant";
 import { cn } from "@/lib/utils";
 
@@ -85,7 +86,7 @@ export function VoteScreen({ initialPoll, participantIds, ownerId, timezone }: {
 
   async function submitVote(candidateId: string, value: VoteValue) {
     if (!participantId || !acceptsResponses) return;
-    const idempotencyKey = crypto.randomUUID();
+    const idempotencyKey = createClientRequestId();
     setPendingKey(`${candidateId}:${value}`);
     setErrorMessage(null);
     setSuccessMessage(null);
@@ -114,7 +115,7 @@ export function VoteScreen({ initialPoll, participantIds, ownerId, timezone }: {
       const response = await fetch(`/api/polls/${poll.id}/close`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ participantId, idempotencyKey: crypto.randomUUID() })
+        body: JSON.stringify({ participantId, idempotencyKey: createClientRequestId() })
       });
       if (!response.ok) throw new Error("close_failed");
       const payload = await response.json() as { poll: PollSnapshot };
@@ -137,7 +138,7 @@ export function VoteScreen({ initialPoll, participantIds, ownerId, timezone }: {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           participantId,
-          idempotencyKey: crypto.randomUUID(),
+          idempotencyKey: createClientRequestId(),
           candidate: {
             title: String(formData.get("title") ?? ""),
             description: String(formData.get("description") ?? ""),
@@ -284,19 +285,26 @@ export function VoteScreen({ initialPoll, participantIds, ownerId, timezone }: {
 
               <div className="mt-3 grid grid-cols-3 gap-2">
                 {choices.map((choice) => (
-                  <button
-                    key={choice.value}
-                    type="button"
-                    disabled={!participantId || !acceptsResponses || pendingKey !== null}
-                    onClick={() => submitVote(candidate.id, choice.value)}
-                    aria-pressed={selected === choice.value}
-                    className={cn(
-                      "h-10 rounded-[8px] border text-xs font-bold disabled:opacity-55",
-                      choiceTone(choice.value, selected === choice.value)
-                    )}
-                  >
-                    {choice.label}
-                  </button>
+                  <form key={choice.value} action={`/api/polls/${poll.id}/responses`} method="post">
+                    <input type="hidden" name="candidateId" value={candidate.id} />
+                    <input type="hidden" name="participantId" value={participantId ?? ""} />
+                    <input type="hidden" name="value" value={choice.value} />
+                    <button
+                      type="submit"
+                      disabled={!participantId || !acceptsResponses || pendingKey !== null}
+                      onClick={(event) => {
+                        event.preventDefault();
+                        void submitVote(candidate.id, choice.value);
+                      }}
+                      aria-pressed={selected === choice.value}
+                      className={cn(
+                        "h-10 w-full rounded-[8px] border text-xs font-bold disabled:opacity-55",
+                        choiceTone(choice.value, selected === choice.value)
+                      )}
+                    >
+                      {choice.label}
+                    </button>
+                  </form>
                 ))}
               </div>
 
@@ -329,14 +337,20 @@ export function VoteScreen({ initialPoll, participantIds, ownerId, timezone }: {
           >
             <Plus aria-hidden="true" size={17} /> Добавить свой
           </button>
-          <button
-            type="button"
-            disabled={!canClosePoll || pendingKey !== null}
-            onClick={closePoll}
-            className="h-11 rounded-[8px] bg-primary text-sm font-semibold text-white disabled:opacity-55"
-          >
-            {poll.status === "closed" ? "Завершено" : pendingKey === "close" ? "Подводим итог…" : remainingSeconds === 0 ? "Подвести итог" : "Завершить раньше"}
-          </button>
+          <form action={`/api/polls/${poll.id}/close`} method="post">
+            <input type="hidden" name="participantId" value={participantId ?? ""} />
+            <button
+              type="submit"
+              disabled={!canClosePoll || pendingKey !== null}
+              onClick={(event) => {
+                event.preventDefault();
+                void closePoll();
+              }}
+              className="h-11 w-full rounded-[8px] bg-primary text-sm font-semibold text-white disabled:opacity-55"
+            >
+              {poll.status === "closed" ? "Завершено" : pendingKey === "close" ? "Подводим итог…" : remainingSeconds === 0 ? "Подвести итог" : "Завершить раньше"}
+            </button>
+          </form>
         </div>
         {poll.status === "active" && participantId && participantId !== ownerId && (
           <p className="text-center text-[11px] text-ink/55">Подвести итог может организатор поездки.</p>

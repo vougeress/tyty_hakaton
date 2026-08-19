@@ -86,35 +86,70 @@ function deriveGap(trip: TripDetails, events: CalendarEvent[]): CalendarGap[] {
   const sorted = events
     .filter((event) => event.type !== "poll" && event.type !== "draft" && event.status !== "cancelled")
     .sort((a, b) => a.startsAt.getTime() - b.startsAt.getTime());
-  if (sorted.length < 2) return [];
+  const departureBufferMinutes = 25;
+  const returnBufferMinutes = 80;
+  const minimumUsefulMinutes = 30;
+  const participantIds = trip.participants.map(({ id }) => id);
+  const gaps: CalendarGap[] = [];
+
+  function appendGap(
+    previousId: string,
+    nextId: string,
+    startsAt: Date,
+    endsAt: Date,
+    nextRequiredItemId?: string
+  ) {
+    if ((endsAt.getTime() - startsAt.getTime()) / 60_000 < minimumUsefulMinutes) return;
+    const id = `gap-${previousId}-${nextId}`;
+    gaps.push({
+      id,
+      tripId: trip.id,
+      startsAt: startsAt.toISOString(),
+      endsAt: endsAt.toISOString(),
+      participantIds,
+      ...(nextRequiredItemId ? { nextRequiredItemId } : {}),
+      href: `/calendar/gaps/${id}/create`
+    });
+  }
+
+  if (sorted.length === 0) {
+    appendGap("trip-start", "trip-end", trip.startsAt, trip.endsAt);
+    return gaps;
+  }
+
+  appendGap(
+    "trip-start",
+    sorted[0].id,
+    trip.startsAt,
+    new Date(sorted[0].startsAt.getTime() - returnBufferMinutes * 60_000),
+    sorted[0].id
+  );
 
   let previous = sorted[0];
   let busyUntil = previous.endsAt;
   for (let index = 1; index < sorted.length; index += 1) {
     const next = sorted[index];
-    const sameDay = zonedDateParts(busyUntil, trip.timezone).date === zonedDateParts(next.startsAt, trip.timezone).date;
-    const gapMinutes = (next.startsAt.getTime() - busyUntil.getTime()) / 60_000;
-    if (sameDay && gapMinutes >= 240) {
-      const returnBufferMinutes = 80;
-      const departureBufferMinutes = 25;
-      const id = `gap-${previous.id}-${next.id}`;
-      return [{
-        id,
-        tripId: trip.id,
-        startsAt: new Date(busyUntil.getTime() + departureBufferMinutes * 60_000).toISOString(),
-        endsAt: new Date(next.startsAt.getTime() - returnBufferMinutes * 60_000).toISOString(),
-        participantIds: trip.participants.map(({ id }) => id),
-        nextRequiredItemId: next.id,
-        href: `/calendar/gaps/${id}/create`
-      }];
-    }
+    appendGap(
+      previous.id,
+      next.id,
+      new Date(busyUntil.getTime() + departureBufferMinutes * 60_000),
+      new Date(next.startsAt.getTime() - returnBufferMinutes * 60_000),
+      next.id
+    );
 
     if (next.endsAt > busyUntil) {
       previous = next;
       busyUntil = next.endsAt;
     }
   }
-  return [];
+
+  appendGap(
+    previous.id,
+    "trip-end",
+    new Date(busyUntil.getTime() + departureBufferMinutes * 60_000),
+    trip.endsAt
+  );
+  return gaps;
 }
 
 function weekDays(trip: TripDetails, currentDate?: string): CalendarPreset["days"] {

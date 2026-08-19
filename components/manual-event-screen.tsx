@@ -13,6 +13,7 @@ import {
   type ManualEventContext,
   type ManualEventDraft
 } from "@/lib/manual-event-repository";
+import { createClientRequestId } from "@/lib/client-request-id";
 import { PARTICIPANT_STORAGE_KEY } from "@/lib/trips/constants";
 import { cn } from "@/lib/utils";
 
@@ -34,7 +35,7 @@ export function ManualEventScreen({ context }: { context: ManualEventContext }) 
   const [checkingLogistics, setCheckingLogistics] = useState(false);
   const [checkedSnapshot, setCheckedSnapshot] = useState<string | null>(null);
   const [logistics, setLogistics] = useState(context.logistics);
-  const [requestId] = useState(() => crypto.randomUUID());
+  const [requestId] = useState(createClientRequestId);
   const [createdResult, setCreatedResult] = useState<Extract<ManualEventActionResult, { status: "success" }> | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const groupSelectionRef = useRef(context.initialDraft.participantIds);

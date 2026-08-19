@@ -15,7 +15,6 @@ import {
   Sparkles
 } from "lucide-react";
 import type {
-  CalendarGap,
   CalendarItem,
   CalendarParticipant,
   CalendarPreset
@@ -29,9 +28,7 @@ const GRID_END_HOUR = 24;
 const PX_PER_HOUR = 36;
 const GRID_HEIGHT = (GRID_END_HOUR - GRID_START_HOUR) * PX_PER_HOUR;
 
-type PositionedEntry =
-  | { kind: "item"; entry: CalendarItem; column: number; top: number; height: number }
-  | { kind: "gap"; entry: CalendarGap; column: number; top: number; height: number };
+type PositionedEntry = { entry: CalendarItem; column: number; top: number; height: number };
 
 function dateParts(iso: string, timezone: string) {
   const values = new Intl.DateTimeFormat("en-CA", {
@@ -51,9 +48,8 @@ function dateParts(iso: string, timezone: string) {
 }
 
 function positionEntry(
-  entry: CalendarItem | CalendarGap,
+  entry: CalendarItem,
   days: CalendarPreset["days"],
-  kind: PositionedEntry["kind"],
   timezone: string
 ): PositionedEntry | null {
   const start = dateParts(entry.startsAt, timezone);
@@ -68,7 +64,7 @@ function positionEntry(
   const top = ((visibleStart - gridStart) / 60) * PX_PER_HOUR;
   const height = Math.max(32, ((visibleEnd - visibleStart) / 60) * PX_PER_HOUR);
 
-  return { kind, entry, column, top, height } as PositionedEntry;
+  return { entry, column, top, height };
 }
 
 function shiftedIsoDate(isoDate: string, days: number) {
@@ -158,7 +154,8 @@ export function CalendarScreen({
     };
   }), [preset.days, selectedDate, weekOffset]);
   const visibleDateIds = new Set(visibleDays.map(({ isoDate }) => isoDate));
-  const addHref = preset.gaps.find((gap) => visibleDateIds.has(dateParts(gap.startsAt, preset.trip.timezone).day))?.href;
+  const addHref = preset.gaps.find((gap) => visibleDateIds.has(dateParts(gap.startsAt, preset.trip.timezone).day))?.href
+    ?? preset.gaps[0]?.href;
 
   useEffect(() => {
     setManualItems(mockMode ? readManualCalendarItems() : []);
@@ -176,14 +173,10 @@ export function CalendarScreen({
     ];
     const itemEntries = mergedItems
       .filter((item) => participantFilter === "all" || item.participantIds.includes(participantFilter))
-      .map((item) => positionEntry(item, visibleDays, "item", preset.trip.timezone))
-      .filter((item): item is PositionedEntry => item !== null);
-    const gapEntries = preset.gaps
-      .filter((gap) => participantFilter === "all" || gap.participantIds.includes(participantFilter))
-      .map((gap) => positionEntry(gap, visibleDays, "gap", preset.trip.timezone))
+      .map((item) => positionEntry(item, visibleDays, preset.trip.timezone))
       .filter((item): item is PositionedEntry => item !== null);
 
-    return [...itemEntries, ...gapEntries].sort((a, b) => a.entry.startsAt.localeCompare(b.entry.startsAt));
+    return itemEntries.sort((a, b) => a.entry.startsAt.localeCompare(b.entry.startsAt));
   }, [manualItems, participantFilter, preset, visibleDays]);
 
   function handleTouchStart(event: React.TouchEvent) {
@@ -337,28 +330,13 @@ export function CalendarScreen({
             </span>
           ))}
 
-          {positionedEntries.map(({ kind, entry, column, top, height }) => {
+          {positionedEntries.map(({ entry, column, top, height }) => {
             const style = {
               left: `calc(30px + ((100% - 30px) / 7 * ${column}) + 2px)`,
               top: `${top}px`,
               width: "calc(((100% - 30px) / 7) - 4px)",
               height: `${height}px`
             };
-
-            if (kind === "gap") {
-              return (
-                <Link
-                  key={`gap-${entry.id}`}
-                  href={entry.href}
-                  style={style}
-                  className="absolute z-[2] overflow-hidden rounded-[7px_7px_7px_3px] border-2 border-dashed border-[#e59a28] bg-[#fff7e7]/90 p-[5px_4px] text-left text-[11px] font-semibold leading-[1.17] text-[#82500d] shadow-[inset_3px_0_0_#e59a28]"
-                  aria-label="Свободное окно, суббота с 12:20 до 18:10"
-                >
-                  Окно
-                  <small className="mt-0.5 block text-[11px] font-normal opacity-80">5 ч 50</small>
-                </Link>
-              );
-            }
 
             return (
               <Link

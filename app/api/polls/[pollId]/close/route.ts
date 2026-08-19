@@ -12,8 +12,14 @@ type RouteContext = {
 export async function POST(request: Request, context: RouteContext) {
   try {
     const { pollId } = await context.params;
-    const body = await request.json();
+    const isForm = request.headers.get("content-type")?.includes("application/x-www-form-urlencoded") ?? false;
+    const body = isForm
+      ? Object.fromEntries(await request.formData())
+      : await request.json();
     const poll = await createPollRepository().closePoll({ ...body, pollId });
+    if (isForm) {
+      return NextResponse.redirect(new URL(poll.winnerCandidateId ? "/calendar" : `/polls/${poll.id}`, request.url), { status: 303 });
+    }
     return NextResponse.json({ poll });
   } catch (error) {
     if (error instanceof ZodError) {
