@@ -37,7 +37,7 @@ test("проходит доступный P0 mock-flow и сохраняет п�
   expect(await page.evaluate((key) => window.localStorage.getItem(key), DRAFTS_STORAGE_KEY)).toBeNull();
 
   await page.getByRole("link", { name: /Свияжск конфликтует с ужином/ }).click();
-  await expect(page.getByText("conflict.schedule_changed", { exact: true })).toBeVisible();
+  await expect(page.locator('[data-preset-id="conflict.schedule_changed"]')).toBeVisible();
   await page.goBack();
 
   await page.getByRole("button", { name: "Добавить 3 переезда как черновики", exact: true }).click();
